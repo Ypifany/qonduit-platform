@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qonduit — Operations Situation Map</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 12px; }
+  .shell { background: #ffffff; border: 1px solid #d1d9e0; border-radius: 12px; overflow: hidden; width: 100%; max-width: 860px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #042C53; }
+  .brand { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: .03em; }
+  .brand em { color: #85B7EB; font-style: normal; }
+  .livedot { width: 8px; height: 8px; border-radius: 50%; background: #5DCAA5; animation: blink 2s infinite; margin-right: 9px; display: inline-block; vertical-align: middle; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .topbar-r { display: flex; align-items: center; gap: 14px; }
+  .clk { font-size: 12px; color: #85B7EB; font-family: 'SF Mono', monospace; }
+  .tq { font-size: 10px; color: rgba(255,255,255,.4); }
+
+  /* Threat level bar */
+  .threatbar { display: flex; align-items: stretch; border-bottom: 1px solid #e1e8ed; background: #f8f9fa; }
+  .tl-lbl { font-size: 10px; font-weight: 600; color: #6b7a8d; padding: 0 12px; display: flex; align-items: center; border-right: 1px solid #e1e8ed; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+  .tl-levels { display: flex; flex: 1; }
+  .tl-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 4px; border-right: 1px solid #e1e8ed; opacity: .22; transition: opacity .6s, background .6s; }
+  .tl-item:last-child { border-right: none; }
+  .tl-item.active { opacity: 1; }
+  .tl-dot { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 3px; }
+  .tl-name { font-size: 10px; font-weight: 700; }
+  .tl-sub { font-size: 8px; color: #6b7a8d; text-align: center; margin-top: 1px; min-height: 10px; }
+
+  /* Alert banners */
+  .phish-bar { display: flex; align-items: flex-start; gap: 10px; padding: 8px 16px; font-size: 12px; border-bottom: 1px solid #e1e8ed; }
+  .phish-bar.ph { background: #FFF0EB; color: #5C2500; border-left: 3px solid #E24B4A; }
+  .phish-bar.int { background: #EBF4FF; color: #0A3260; border-left: 3px solid #378ADD; }
+
+  /* Main body */
+  .body { display: grid; grid-template-columns: 1fr 210px; min-height: 320px; }
+  .mapwrap { position: relative; border-right: 1px solid #e1e8ed; background: #f0f4f8; }
+  #mc { display: block; width: 100%; }
+
+  /* Sidebar */
+  .sidebar { display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+  .ss { padding: 10px 11px; }
+  .ss + .ss { border-top: 1px solid #e1e8ed; }
+  .stitle { font-size: 10px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px; }
+  .feed { display: flex; flex-direction: column; gap: 5px; }
+  .fev { display: flex; gap: 7px; padding: 6px 8px; background: #f8f9fa; border: 1px solid #e1e8ed; border-radius: 6px; }
+  .fd { width: 7px; height: 7px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .fd.g { background: #1D9E75; } .fd.b { background: #185FA5; } .fd.a { background: #BA7517; } .fd.r { background: #A32D2D; }
+  .ft { font-size: 10px; color: #1a2332; line-height: 1.45; }
+  .fts { font-size: 9px; color: #6b7a8d; font-family: monospace; margin-top: 2px; }
+  .iitem { display: flex; align-items: flex-start; gap: 7px; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; font-size: 10px; line-height: 1.4; }
+  .iitem.ok { background: #F0FAF5; color: #0A3D22; }
+  .iitem.warn { background: #FFF8EC; color: #4A2E00; }
+  .iitem.alrt { background: #FFF0EB; color: #5C2500; }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: #e1e8ed; border-top: 1px solid #e1e8ed; }
+  .mc2 { background: #fff; padding: 8px 13px; }
+  .ml2 { font-size: 10px; color: #6b7a8d; margin-bottom: 2px; }
+  .mv2 { font-size: 17px; font-weight: 700; font-family: monospace; color: #1a2332; }
+  .mv2.g { color: #0F6E56; } .mv2.b { color: #185FA5; } .mv2.a { color: #854F0B; } .mv2.r { color: #A32D2D; }
+  .md2 { font-size: 9px; color: #6b7a8d; margin-top: 1px; }
+
+  /* Footer */
+  .footer { padding: 7px 16px; border-top: 1px solid #e1e8ed; background: #f8f9fa; display: flex; align-items: center; justify-content: space-between; }
+  .footer-l { font-size: 10px; color: #6b7a8d; }
+  .footer-r { font-size: 10px; color: #6b7a8d; }
+  .footer-r a { color: #185FA5; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div><span class="livedot"></span><span class="brand">Q<em>onduit</em> &mdash; Operations Situation Map</span></div>
+    <div class="topbar-r">
+      <span class="tq">Visible to all teams &middot; Updated live</span>
+      <span class="clk" id="clk">--:--:-- UTC</span>
+    </div>
+  </div>
+
+  <!-- Threat level -->
+  <div class="threatbar">
+    <div class="tl-lbl">Threat level</div>
+    <div class="tl-levels" id="tlLevels"></div>
+  </div>
+
+  <!-- Alert banners -->
+  <div id="banners"></div>
+
+  <!-- Main body -->
+  <div class="body">
+    <div class="mapwrap"><canvas id="mc" width="640" height="340"></canvas></div>
+    <div class="sidebar">
+      <div class="ss" style="flex:1;overflow:hidden;">
+        <div class="stitle">What&rsquo;s happening</div>
+        <div class="feed" id="feed"></div>
+      </div>
+      <div class="ss">
+        <div class="stitle">Inside Qonduit</div>
+        <div id="intItems"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics">
+    <div class="mc2"><div class="ml2">Active connections</div><div class="mv2 b" id="mC">9</div><div class="md2">partners + clients</div></div>
+    <div class="mc2"><div class="ml2">Data leaving / min</div><div class="mv2 g" id="mV">2.4 MB</div><div class="md2" id="mVn">normal range</div></div>
+    <div class="mc2"><div class="ml2">Flags raised</div><div class="mv2 g" id="mF">0</div><div class="md2" id="mFn">none active</div></div>
+    <div class="mc2"><div class="ml2">Employees notified</div><div class="mv2 g" id="mE">0</div><div class="md2" id="mEn">no active alerts</div></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-l">Qonduit Security Operations &mdash; Powered by Ypifany</span>
+    <span class="footer-r">Questions? <a href="mailto:security@qonduit.io">security@qonduit.io</a></span>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+const CW=640, CH=340;
+const canvas=document.getElementById('mc');
+const ctx=canvas.getContext('2d');
+
+const LEVELS=[
+  {n:5,name:'GREEN', label:'All Clear',         dot:'#1D9E75'},
+  {n:4,name:'BLUE',  label:'Watch',              dot:'#185FA5'},
+  {n:3,name:'YELLOW',label:'Charlie · Caution',  dot:'#BA7517'},
+  {n:2,name:'ORANGE',label:'Bravo · Elevated',   dot:'#993C1D'},
+  {n:1,name:'RED',   label:'Alpha · Critical',   dot:'#A32D2D'},
+];
+
+let threat=5;
+function setThreat(n){
+  threat=n;
+  const el=document.getElementById('tlLevels');
+  el.innerHTML='';
+  LEVELS.forEach(l=>{
+    const d=document.createElement('div');
+    d.className='tl-item'+(l.n===n?' active':'');
+    d.innerHTML=`<div class="tl-dot" style="background:${l.dot}"></div>
+                 <div class="tl-name" style="color:${l.dot}">${l.name}</div>
+                 <div class="tl-sub">${l.n===n?l.label:''}</div>`;
+    el.appendChild(d);
+  });
+}
+setThreat(5);
+
+const NODE_DEF={
+  core:   {lon:-77.04,lat:38.90,lbl:['Qonduit HQ','Washington, DC'],r:20,fill:'#042C53',sk:'#378ADD',tc:'#E6F1FB'},
+  wh:     {lon:-90.05,lat:35.15,lbl:['WarehouseIQ','Memphis, TN'], r:14,fill:'#085041',sk:'#1D9E75',tc:'#E1F5EE'},
+  erp:    {lon:-74.01,lat:40.71,lbl:['Apex ERP','New York, NY'],   r:14,fill:'#26215C',sk:'#7F77DD',tc:'#EEEDFE'},
+  carrier:{lon:-84.39,lat:33.75,lbl:['CrossBridge','Atlanta, GA'], r:14,fill:'#3B6D11',sk:'#97C459',tc:'#EAF3DE'},
+  customs:{lon:-106.49,lat:31.76,lbl:['CBP Datalink','El Paso,TX'],r:13,fill:'#633806',sk:'#EF9F27',tc:'#FAEEDA'},
+  retail: {lon:-93.27,lat:44.98,lbl:['Summit Retail','Minneapolis'],r:13,fill:'#0C447C',sk:'#85B7EB',tc:'#E6F1FB'},
+  gov:    {lon:-117.15,lat:32.72,lbl:['DLA West','San Diego, CA'], r:13,fill:'#3C3489',sk:'#AFA9EC',tc:'#EEEDFE'},
+  port:   {lon:-76.29,lat:36.85,lbl:['Port of Norfolk','VA'],      r:13,fill:'#04342C',sk:'#5DCAA5',tc:'#E1F5EE'},
+  food:   {lon:-94.58,lat:39.10,lbl:['FreshRoute','Kansas City'],  r:12,fill:'#173404',sk:'#639922',tc:'#EAF3DE'},
+};
+
+const UNKNOWN={
+  charlotte:{lon:-80.84,lat:35.23,lbl:'Charlotte, NC'},
+  phoenix:  {lon:-112.07,lat:33.45,lbl:'Phoenix, AZ'},
+  detroit:  {lon:-83.04,lat:42.33,lbl:'Detroit, MI'},
+};
+
+let nodes={}, susp=[], parts=[], tick=0;
+const offsc=document.createElement('canvas');
+offsc.width=CW; offsc.height=CH;
+let mapReady=false;
+
+const LINKS=[
+  {f:'core',t:'wh'},{f:'core',t:'erp'},{f:'core',t:'carrier'},
+  {f:'core',t:'customs'},{f:'core',t:'retail'},{f:'core',t:'gov'},
+  {f:'core',t:'port'},{f:'core',t:'food'},
+];
+
+const SIM=Date.now();
+function sec(){return(Date.now()-SIM)/1000;}
+
+let tlIdx=0;
+const TL=[
+  {at:0,  fn:()=>setThreat(5)},
+  {at:20, fn:()=>{setThreat(4);ev('b','Network traffic slightly above normal — all connections stable');}},
+  {at:30, fn:()=>{
+    setThreat(3);
+    banner('ph','<strong>⚠️ Phishing alert:</strong> 3 employees reported a suspicious email — Subject: "Q4 Invoice Correction — Action Required" — Do NOT click links. Forward to <strong>security@qonduit.io</strong>');
+    ev('a','3 employees flagged a phishing email. Security team is tracking it.');
+    addInt('warn','⚠','Employees: delete the Q4 invoice email if you received it');
+    updateMetrics();
+  }},
+  {at:50, fn:()=>{addSusp('erp','charlotte');ev('r','Unverified system pulling data through Apex ERP — source not recognized. Team investigating.');}},
+  {at:72, fn:()=>{setThreat(2);addInt('warn','📊','ERP data volume 18% above baseline — security watching closely');ev('a','Data volume through New York is elevated — being monitored');updateMetrics();}},
+  {at:90, fn:()=>{susp=[];ev('b','Unverified connection dropped — team tracking where it moved to');}},
+  {at:97, fn:()=>{
+    addSusp('customs','phoenix');
+    ev('r','Second unverified connection — different location, same pattern. Escalating.');
+    banner('int','<strong>ℹ️ All employees:</strong> As a precaution, do not open attachments or click unfamiliar links until further notice.');
+  }},
+  {at:114,fn:()=>{
+    setThreat(1);
+    addSusp('carrier','detroit');
+    ev('r','Multiple unverified connections active. Security team is responding. Business operations continue — stay calm.');
+    addInt('alrt','🚨','Incident response activated — leadership briefed');
+    updateMetrics();
+  }},
+  {at:132,fn:()=>{ev('b','Leadership briefed. All teams: continue normal work. Updates every 15 minutes.');}},
+];
+
+function checkTL(){
+  while(tlIdx<TL.length && sec()>=TL[tlIdx].at){TL[tlIdx].fn();tlIdx++;}
+}
+
+let feedData=[
+  {dot:'g',text:'All 9 connections active and healthy',t:Date.now()-19*60000},
+  {dot:'g',text:'WarehouseIQ sync — 4,821 products updated across all clients',t:Date.now()-15*60000},
+  {dot:'b',text:'DLA West authenticated — shipment manifest transfer started',t:Date.now()-12*60000},
+  {dot:'g',text:'CrossBridge Carriers: 12 freight manifests confirmed',t:Date.now()-9*60000},
+  {dot:'g',text:'Summit Retail Group: 320 purchase orders loaded',t:Date.now()-6*60000},
+  {dot:'a',text:'FreshRoute Foods weekly report delayed — retry queued',t:Date.now()-4*60000},
+];
+
+function fmtT(ts){return new Date(ts).toUTCString().split(' ')[4];}
+
+function renderFeed(){
+  const el=document.getElementById('feed');
+  el.innerHTML='';
+  feedData.slice(0,6).forEach(e=>{
+    const d=document.createElement('div');
+    d.className='fev';
+    d.innerHTML=`<div class="fd ${e.dot}"></div><div><div class="ft">${e.text}</div><div class="fts">${fmtT(e.t)}</div></div>`;
+    el.appendChild(d);
+  });
+}
+
+function ev(dot,text){
+  feedData.unshift({dot,text,t:Date.now()});
+  if(feedData.length>20) feedData.pop();
+  renderFeed();
+}
+renderFeed();
+
+function banner(cls,html){
+  const el=document.getElementById('banners');
+  const d=document.createElement('div');
+  d.className=`phish-bar ${cls}`;
+  d.innerHTML=html;
+  el.appendChild(d);
+}
+
+let intState=[
+  {cls:'ok', icon:'✅', text:'All security scans passing'},
+  {cls:'ok', icon:'👥', text:'847 active sessions — all authorized'},
+  {cls:'ok', icon:'🔄', text:'Internal data movement: normal'},
+];
+
+function addInt(cls,icon,text){
+  intState.unshift({cls,icon,text});
+  if(intState.length>4) intState.pop();
+  renderInt();
+}
+
+function renderInt(){
+  const el=document.getElementById('intItems');
+  el.innerHTML='';
+  intState.slice(0,3).forEach(i=>{
+    const d=document.createElement('div');
+    d.className=`iitem ${i.cls}`;
+    d.innerHTML=`<span style="flex-shrink:0;">${i.icon}</span><span>${i.text}</span>`;
+    el.appendChild(d);
+  });
+}
+renderInt();
+
+function addSusp(tid,locId){
+  const loc=UNKNOWN[locId];
+  const pix=window._proj?window._proj([loc.lon,loc.lat]):null;
+  susp.push({tid,lon:loc.lon,lat:loc.lat,lbl:loc.lbl,pix});
+}
+
+function updateMetrics(){
+  const s=sec();
+  const vol=(2.4+Math.sin(s*.28)*.22+(s>50?.75:0)+(s>114?.45:0)).toFixed(1);
+  const flags=susp.length;
+  const emp=s>30?(s>97?Math.min(847,3+Math.floor((s-97)*3)):3):0;
+
+  const vE=document.getElementById('mV');
+  vE.textContent=vol+' MB'; vE.className='mv2 '+(parseFloat(vol)>3?'a':'g');
+  document.getElementById('mVn').textContent=parseFloat(vol)>3?'above normal':'normal range';
+
+  const fE=document.getElementById('mF');
+  fE.textContent=flags; fE.className='mv2 '+(flags>1?'r':flags>0?'a':'g');
+  document.getElementById('mFn').textContent=flags===0?'none active':flags===1?'1 — investigating':flags+' — responding';
+
+  const eE=document.getElementById('mE');
+  eE.textContent=emp>0?emp.toLocaleString():'0'; eE.className='mv2 '+(emp>0?'a':'g');
+  document.getElementById('mEn').textContent=emp>0?'received notice':'no active alerts';
+}
+
+// Particle class
+class P {
+  constructor(fx,fy,tx,ty,status){
+    this.fx=fx;this.fy=fy;this.tx=tx;this.ty=ty;
+    this.t=0;this.ph=Math.random()*Math.PI*2;
+    this.status=status||'ok';
+    this.spd=status==='alert'?.011:status==='warn'?.007:.0035;
+    this.paused=false;this.pt=0;
+  }
+  upd(){
+    if(this.paused){this.pt--;if(this.pt<=0)this.paused=false;return;}
+    if(Math.random()<.0007*(6-threat)){this.paused=true;this.pt=25+Math.floor(Math.random()*55);}
+    const sv=.6+.8*Math.sin(this.ph+tick*.028);
+    const tb=threat<=2?1.7:threat===3?1.25:1;
+    this.t+=this.spd*sv*tb;
+  }
+  get alive(){return this.t<1;}
+  draw(){
+    const x=this.fx+(this.tx-this.fx)*this.t;
+    const y=this.fy+(this.ty-this.fy)*this.t;
+    ctx.save();
+    ctx.globalAlpha=Math.min(1,(1-this.t)*2.5);
+    ctx.beginPath();ctx.arc(x,y,this.status==='alert'?3.5:2.5,0,Math.PI*2);
+    ctx.fillStyle=this.status==='alert'?'#E24B4A':this.status==='warn'?'#EF9F27':'#1D9E75';
+    ctx.fill();ctx.restore();
+  }
+}
+
+function spawnParts(){
+  LINKS.forEach(lk=>{
+    const a=nodes[lk.f],b=nodes[lk.t];if(!a||!b)return;
+    const isSusp=susp.some(s=>s.tid===lk.t);
+    const rate=isSusp?.1:.04+(threat<=2?.03:0);
+    if(Math.random()<rate) parts.push(new P(a.x,a.y,b.x,b.y,isSusp?'alert':'ok'));
+  });
+  susp.forEach(s=>{
+    const src=nodes[s.tid];if(!src||!s.pix)return;
+    if(Math.random()<.12) parts.push(new P(src.x,src.y,s.pix[0],s.pix[1],'alert'));
+  });
+}
+
+function drawLinks(){
+  LINKS.forEach(lk=>{
+    const a=nodes[lk.f],b=nodes[lk.t];if(!a||!b)return;
+    const isSusp=susp.some(s=>s.tid===lk.t);
+    ctx.save();ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=isSusp?'rgba(226,75,74,.4)':'rgba(29,158,117,.2)';
+    ctx.lineWidth=isSusp?1.5:1;
+    ctx.stroke();ctx.restore();
+  });
+}
+
+function drawSusp(){
+  susp.forEach(s=>{
+    const src=nodes[s.tid];if(!src||!s.pix)return;
+    const dash=Math.floor(tick/12)%2===0?[6,3]:[3,6];
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(src.x,src.y);ctx.lineTo(s.pix[0],s.pix[1]);
+    ctx.setLineDash(dash);ctx.strokeStyle='rgba(226,75,74,.75)';ctx.lineWidth=1.5;
+    ctx.stroke();ctx.setLineDash([]);
+    const pulse=4+Math.sin(tick*.1)*2;
+    ctx.beginPath();ctx.arc(s.pix[0],s.pix[1],pulse+4,0,Math.PI*2);
+    ctx.strokeStyle='rgba(226,75,74,.2)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.arc(s.pix[0],s.pix[1],5.5,0,Math.PI*2);
+    ctx.fillStyle='#E24B4A';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
+    ctx.font='bold 9px sans-serif';
+    ctx.fillStyle='#A32D2D';ctx.textAlign='center';
+    ctx.fillText('⚠ Unverified · '+s.lbl,s.pix[0],s.pix[1]-13);
+    ctx.restore();
+  });
+}
+
+function drawNodes(){
+  Object.keys(NODE_DEF).forEach(id=>{
+    const n=nodes[id];const d=NODE_DEF[id];if(!n)return;
+    const isSusp=susp.some(s=>s.tid===id);
+    ctx.save();
+    if(id==='core'){
+      ctx.beginPath();ctx.arc(n.x,n.y,d.r+6,0,Math.PI*2);
+      ctx.strokeStyle=d.sk;ctx.lineWidth=.5;ctx.stroke();
+    }
+    if(isSusp){
+      ctx.beginPath();ctx.arc(n.x,n.y,d.r+3+Math.sin(tick*.09)*1.5,0,Math.PI*2);
+      ctx.strokeStyle='rgba(226,75,74,.5)';ctx.lineWidth=1.5;ctx.stroke();
+    }
+    ctx.beginPath();ctx.arc(n.x,n.y,d.r,0,Math.PI*2);
+    ctx.fillStyle=d.fill;ctx.fill();
+    ctx.strokeStyle=isSusp?'#E24B4A':d.sk;ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=d.tc;
+    ctx.font=(d.r>=20?'600 11px':'9px')+' sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    d.lbl.forEach((ln,i)=>ctx.fillText(ln,n.x,n.y+(i-(d.lbl.length-1)/2)*12));
+    ctx.restore();
+  });
+}
+
+function frame(){
+  ctx.clearRect(0,0,CW,CH);
+  if(mapReady) ctx.drawImage(offsc,0,0);
+  drawLinks();drawSusp();
+  parts.forEach(p=>p.draw());
+  drawNodes();
+}
+
+function loop(){
+  tick++;
+  document.getElementById('clk').textContent=new Date().toUTCString().split(' ')[4]+' UTC';
+  if(tick%3===0){checkTL();updateMetrics();}
+  spawnParts();
+  parts.forEach(p=>p.upd());
+  parts=parts.filter(p=>p.alive);
+  frame();
+  requestAnimationFrame(loop);
+}
+
+// Load map
+d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us=>{
+  const proj=d3.geoAlbersUsa().scale(700).translate([310,168]);
+  window._proj=proj;
+  Object.keys(NODE_DEF).forEach(id=>{
+    const def=NODE_DEF[id];
+    const px=proj([def.lon,def.lat]);
+    if(px) nodes[id]={x:px[0],y:px[1]};
+  });
+  susp.forEach(s=>{const px=proj([s.lon,s.lat]);if(px)s.pix=px;});
+  const oc=offsc.getContext('2d');
+  const path=d3.geoPath().projection(proj).context(oc);
+  topojson.feature(us,us.objects.states).features.forEach(f=>{
+    oc.beginPath();path(f);
+    oc.fillStyle='#D8E4F0';oc.fill();
+    oc.strokeStyle='#ffffff';oc.lineWidth=1;oc.stroke();
+  });
+  mapReady=true;
+  loop();
+}).catch(()=>{
+  Object.keys(NODE_DEF).forEach(id=>{
+    const d=NODE_DEF[id];
+    nodes[id]={x:CW/2+(d.lon+90)*3.8,y:CH/2-(d.lat-38)*5.2};
+  });
+  loop();
+});
+</script>
+</body>
+</html>
