@@ -96,7 +96,7 @@
 
   <!-- Main body -->
   <div class="body">
-    <div class="mapwrap"><canvas id="mc" width="640" height="340"></canvas></div>
+    <div class="mapwrap"><canvas id="mc" width="640" height="380"></canvas></div>
     <div class="sidebar">
       <div class="ss" style="flex:1;overflow:hidden;">
         <div class="stitle">What&rsquo;s happening</div>
@@ -128,7 +128,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script>
-const CW=640, CH=340;
+const CW=640, CH=380;
 const canvas=document.getElementById('mc');
 const ctx=canvas.getContext('2d');
 
@@ -157,15 +157,15 @@ function setThreat(n){
 setThreat(5);
 
 const NODE_DEF={
-  core:   {lon:-77.04,lat:38.90,lbl:['Qonduit HQ','Washington, DC'],r:20,fill:'#042C53',sk:'#378ADD',tc:'#E6F1FB'},
-  wh:     {lon:-90.05,lat:35.15,lbl:['WarehouseIQ','Memphis, TN'], r:14,fill:'#085041',sk:'#1D9E75',tc:'#E1F5EE'},
-  erp:    {lon:-74.01,lat:40.71,lbl:['Apex ERP','New York, NY'],   r:14,fill:'#26215C',sk:'#7F77DD',tc:'#EEEDFE'},
-  carrier:{lon:-84.39,lat:33.75,lbl:['CrossBridge','Atlanta, GA'], r:14,fill:'#3B6D11',sk:'#97C459',tc:'#EAF3DE'},
-  customs:{lon:-106.49,lat:31.76,lbl:['CBP Datalink','El Paso,TX'],r:13,fill:'#633806',sk:'#EF9F27',tc:'#FAEEDA'},
-  retail: {lon:-93.27,lat:44.98,lbl:['Summit Retail','Minneapolis'],r:13,fill:'#0C447C',sk:'#85B7EB',tc:'#E6F1FB'},
-  gov:    {lon:-117.15,lat:32.72,lbl:['DLA West','San Diego, CA'], r:13,fill:'#3C3489',sk:'#AFA9EC',tc:'#EEEDFE'},
-  port:   {lon:-76.29,lat:36.85,lbl:['Port of Norfolk','VA'],      r:13,fill:'#04342C',sk:'#5DCAA5',tc:'#E1F5EE'},
-  food:   {lon:-94.58,lat:39.10,lbl:['FreshRoute','Kansas City'],  r:12,fill:'#173404',sk:'#639922',tc:'#EAF3DE'},
+  core:   {lon:-77.04,lat:38.90,lbl:['Qonduit HQ','Washington, DC'],r:16,fill:'#042C53',sk:'#378ADD',tc:'#E6F1FB'},
+  wh:     {lon:-90.05,lat:35.15,lbl:['WarehouseIQ','Memphis, TN'], r:11,fill:'#085041',sk:'#1D9E75',tc:'#E1F5EE'},
+  erp:    {lon:-74.01,lat:40.71,lbl:['Apex ERP','New York, NY'],   r:11,fill:'#26215C',sk:'#7F77DD',tc:'#EEEDFE'},
+  carrier:{lon:-84.39,lat:33.75,lbl:['CrossBridge','Atlanta, GA'], r:11,fill:'#3B6D11',sk:'#97C459',tc:'#EAF3DE'},
+  customs:{lon:-106.49,lat:31.76,lbl:['CBP Datalink','El Paso, TX'],r:10,fill:'#633806',sk:'#EF9F27',tc:'#FAEEDA'},
+  retail: {lon:-93.27,lat:44.98,lbl:['Summit Retail','Minneapolis'],r:10,fill:'#0C447C',sk:'#85B7EB',tc:'#E6F1FB'},
+  gov:    {lon:-117.15,lat:32.72,lbl:['DLA West','San Diego, CA'], r:10,fill:'#3C3489',sk:'#AFA9EC',tc:'#EEEDFE'},
+  port:   {lon:-76.29,lat:36.85,lbl:['Port of Norfolk','Norfolk, VA'],r:10,fill:'#04342C',sk:'#5DCAA5',tc:'#E1F5EE'},
+  food:   {lon:-94.58,lat:39.10,lbl:['FreshRoute','Kansas City'],  r:10,fill:'#173404',sk:'#639922',tc:'#EAF3DE'},
 };
 
 const UNKNOWN={
@@ -393,13 +393,23 @@ function drawNodes(){
       ctx.beginPath();ctx.arc(n.x,n.y,d.r+3+Math.sin(tick*.09)*1.5,0,Math.PI*2);
       ctx.strokeStyle='rgba(226,75,74,.5)';ctx.lineWidth=1.5;ctx.stroke();
     }
+    // Circle
     ctx.beginPath();ctx.arc(n.x,n.y,d.r,0,Math.PI*2);
     ctx.fillStyle=d.fill;ctx.fill();
     ctx.strokeStyle=isSusp?'#E24B4A':d.sk;ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle=d.tc;
-    ctx.font=(d.r>=20?'600 11px':'9px')+' sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    d.lbl.forEach((ln,i)=>ctx.fillText(ln,n.x,n.y+(i-(d.lbl.length-1)/2)*12));
+
+    // Labels drawn OUTSIDE the circle, below it, in dark text
+    // White outline first for contrast over the map background
+    const ly=n.y+d.r+5;
+    ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.font='700 10px sans-serif';
+    ctx.lineJoin='round';ctx.lineWidth=3;
+    ctx.strokeStyle='rgba(255,255,255,0.92)';
+    d.lbl.forEach((ln,i)=>ctx.strokeText(ln,n.x,ly+i*12));
+    // Dark text on top
+    ctx.fillStyle='#12202E';
+    d.lbl.forEach((ln,i)=>ctx.fillText(ln,n.x,ly+i*12));
+
     ctx.restore();
   });
 }
@@ -425,7 +435,7 @@ function loop(){
 
 // Load map
 d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us=>{
-  const proj=d3.geoAlbersUsa().scale(700).translate([310,168]);
+  const proj=d3.geoAlbersUsa().scale(700).translate([310,185]);
   window._proj=proj;
   Object.keys(NODE_DEF).forEach(id=>{
     const def=NODE_DEF[id];
