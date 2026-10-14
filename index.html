@@ -1,464 +1,245 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Qonduit — Operations Situation Map</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 12px; }
-  .shell { background: #ffffff; border: 1px solid #d1d9e0; border-radius: 12px; overflow: hidden; width: 100%; max-width: 860px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-
-  /* Top bar */
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #042C53; }
-  .brand { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: .03em; }
-  .brand em { color: #85B7EB; font-style: normal; }
-  .livedot { width: 8px; height: 8px; border-radius: 50%; background: #5DCAA5; animation: blink 2s infinite; margin-right: 9px; display: inline-block; vertical-align: middle; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-  .topbar-r { display: flex; align-items: center; gap: 14px; }
-  .clk { font-size: 12px; color: #85B7EB; font-family: 'SF Mono', monospace; }
-  .tq { font-size: 10px; color: rgba(255,255,255,.4); }
-
-  /* Threat level bar */
-  .threatbar { display: flex; align-items: stretch; border-bottom: 1px solid #e1e8ed; background: #f8f9fa; }
-  .tl-lbl { font-size: 10px; font-weight: 600; color: #6b7a8d; padding: 0 12px; display: flex; align-items: center; border-right: 1px solid #e1e8ed; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
-  .tl-levels { display: flex; flex: 1; }
-  .tl-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 4px; border-right: 1px solid #e1e8ed; opacity: .22; transition: opacity .6s, background .6s; }
-  .tl-item:last-child { border-right: none; }
-  .tl-item.active { opacity: 1; }
-  .tl-dot { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 3px; }
-  .tl-name { font-size: 10px; font-weight: 700; }
-  .tl-sub { font-size: 8px; color: #6b7a8d; text-align: center; margin-top: 1px; min-height: 10px; }
-
-  /* Alert banners */
-  .phish-bar { display: flex; align-items: flex-start; gap: 10px; padding: 8px 16px; font-size: 12px; border-bottom: 1px solid #e1e8ed; }
-  .phish-bar.ph { background: #FFF0EB; color: #5C2500; border-left: 3px solid #E24B4A; }
-  .phish-bar.int { background: #EBF4FF; color: #0A3260; border-left: 3px solid #378ADD; }
-
-  /* Main body */
-  .body { display: grid; grid-template-columns: 1fr 210px; min-height: 320px; }
-  .mapwrap { position: relative; border-right: 1px solid #e1e8ed; background: #f0f4f8; }
-  #mc { display: block; width: 100%; }
-
-  /* Sidebar */
-  .sidebar { display: flex; flex-direction: column; overflow: hidden; background: #fff; }
-  .ss { padding: 10px 11px; }
-  .ss + .ss { border-top: 1px solid #e1e8ed; }
-  .stitle { font-size: 10px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px; }
-  .feed { display: flex; flex-direction: column; gap: 5px; }
-  .fev { display: flex; gap: 7px; padding: 6px 8px; background: #f8f9fa; border: 1px solid #e1e8ed; border-radius: 6px; }
-  .fd { width: 7px; height: 7px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
-  .fd.g { background: #1D9E75; } .fd.b { background: #185FA5; } .fd.a { background: #BA7517; } .fd.r { background: #A32D2D; }
-  .ft { font-size: 10px; color: #1a2332; line-height: 1.45; }
-  .fts { font-size: 9px; color: #6b7a8d; font-family: monospace; margin-top: 2px; }
-  .iitem { display: flex; align-items: flex-start; gap: 7px; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; font-size: 10px; line-height: 1.4; }
-  .iitem.ok { background: #F0FAF5; color: #0A3D22; }
-  .iitem.warn { background: #FFF8EC; color: #4A2E00; }
-  .iitem.alrt { background: #FFF0EB; color: #5C2500; }
-
-  /* Metrics */
-  .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: #e1e8ed; border-top: 1px solid #e1e8ed; }
-  .mc2 { background: #fff; padding: 8px 13px; }
-  .ml2 { font-size: 10px; color: #6b7a8d; margin-bottom: 2px; }
-  .mv2 { font-size: 17px; font-weight: 700; font-family: monospace; color: #1a2332; }
-  .mv2.g { color: #0F6E56; } .mv2.b { color: #185FA5; } .mv2.a { color: #854F0B; } .mv2.r { color: #A32D2D; }
-  .md2 { font-size: 9px; color: #6b7a8d; margin-top: 1px; }
-
-  /* Footer */
-  .footer { padding: 7px 16px; border-top: 1px solid #e1e8ed; background: #f8f9fa; display: flex; align-items: center; justify-content: space-between; }
-  .footer-l { font-size: 10px; color: #6b7a8d; }
-  .footer-r { font-size: 10px; color: #6b7a8d; }
-  .footer-r a { color: #185FA5; text-decoration: none; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build and revise a truthful map of how technology supports your home.">
+  <title>Qonduit | See the System You Already Live In</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#experience">Skip to the experience</a>
+  <header class="site-header">
+    <div class="brand">Q<span>onduit</span></div>
+    <div class="privacy-line">Your information stays in this browser tab</div>
+  </header>
 
-<div class="shell">
+  <section class="hero" aria-labelledby="pageTitle">
+    <div>
+      <p class="eyebrow">See the system you already live in</p>
+      <h1 id="pageTitle">Your home works because systems work together.</h1>
+      <p class="lede">Build a map of how technology supports the people in your home. You do not need technical vocabulary, and your map does not need to look like anyone else’s.</p>
+    </div>
+    <aside class="hero-card" aria-label="What to expect">
+      <p><strong>You will make two versions.</strong></p>
+      <p>Qonduit will turn your answers into an editable starting map. After you save Version 1, it will give you something new to investigate. You will decide what belongs in Version 2.</p>
+      <p><strong>No score. No model answer.</strong></p>
+    </aside>
+  </section>
 
-  <!-- Top bar -->
-  <div class="topbar">
-    <div><span class="livedot"></span><span class="brand">Q<em>onduit</em> &mdash; Operations Situation Map</span></div>
-    <div class="topbar-r">
-      <span class="tq">Visible to all teams &middot; Updated live</span>
-      <span class="clk" id="clk">--:--:-- UTC</span>
+  <main class="page-shell" id="experience">
+    <section class="experience" aria-label="Home system mapping experience">
+      <div class="progress-wrap">
+        <div class="progress-copy"><span id="stepLabel">Step 1 of 6</span><span id="stepName">Your home</span></div>
+        <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+      </div>
+
+      <section class="step active" data-step="1" aria-labelledby="step1Title">
+        <div class="step-intro">
+          <p class="eyebrow">Start with what matters</p>
+          <h2 id="step1Title">What do you need your home to do for you and the people who live there?</h2>
+          <p>Choose one, combine a few, change the words, or write your own. You are describing why your home matters before we talk about technology.</p>
+        </div>
+        <div class="choice-grid" id="homePurposeChoices"></div>
+        <div class="field">
+          <label for="homePurposeOther">Something else</label>
+          <input id="homePurposeOther" type="text" placeholder="Write what your home needs to do">
+        </div>
+        <div class="generated-statement">
+          <label for="homeMission">Your home statement</label>
+          <p class="field-help">Qonduit starts the sentence. Change it until it sounds true to you.</p>
+          <textarea id="homeMission" placeholder="My home gives the people who live here..."></textarea>
+        </div>
+        <div class="validation" id="validation1" role="alert"></div>
+        <div class="actions"><div></div><button class="btn btn-primary" data-next="2">Continue to technology</button></div>
+      </section>
+
+      <section class="step" data-step="2" aria-labelledby="step2Title">
+        <div class="step-intro">
+          <p class="eyebrow">Connect technology to purpose</p>
+          <h2 id="step2Title">What do you use technology at home to do?</h2>
+          <p>Choose what is actually true in your home. These uses help explain the job your home technology performs.</p>
+        </div>
+        <div class="choice-grid" id="techUseChoices"></div>
+        <div class="field">
+          <label for="techUseOther">Another use</label>
+          <input id="techUseOther" type="text" placeholder="Add another way you use technology">
+        </div>
+        <div class="generated-statement">
+          <label for="techMission">Your home technology statement</label>
+          <p class="field-help">This should explain how technology contributes to the home statement you just wrote.</p>
+          <textarea id="techMission" placeholder="Our home technology supports this by..."></textarea>
+        </div>
+        <div class="validation" id="validation2" role="alert"></div>
+        <div class="actions"><button class="btn btn-secondary" data-back="1">Back</button><button class="btn btn-primary" data-next="3">Continue to people and devices</button></div>
+      </section>
+
+      <section class="step" data-step="3" aria-labelledby="step3Title">
+        <div class="step-intro">
+          <p class="eyebrow">Use ordinary names</p>
+          <h2 id="step3Title">Who uses the technology, and what technology is there?</h2>
+          <p>Do not include names or private account details. “The box that gives us Wi-Fi” is a useful answer. You can rename it later if you learn the technical term.</p>
+        </div>
+        <h3>People</h3>
+        <div class="choice-grid" id="peopleChoices"></div>
+        <div class="field">
+          <label for="deviceInput">Devices and equipment</label>
+          <p class="field-help">Select examples below or add your own, one at a time.</p>
+          <div class="choice-grid" id="deviceChoices"></div>
+          <div class="tag-builder">
+            <input id="deviceInput" type="text" placeholder="Example: printer or the Wi-Fi box">
+            <button class="btn btn-soft" id="addDevice" type="button">Add device</button>
+          </div>
+          <div class="selected-list" id="customDevices" aria-live="polite"></div>
+        </div>
+        <div class="validation" id="validation3" role="alert"></div>
+        <div class="actions"><button class="btn btn-secondary" data-back="2">Back</button><button class="btn btn-primary" data-next="4">Continue to outside support</button></div>
+      </section>
+
+      <section class="step" data-step="4" aria-labelledby="step4Title">
+        <div class="step-intro">
+          <p class="eyebrow">Look beyond the walls</p>
+          <h2 id="step4Title">What else has to be working for your technology to do what you need?</h2>
+          <p>Your router and devices may be in your home, but they rely on things elsewhere. Choose what your household actually uses. These are outside services and dependencies.</p>
+        </div>
+        <div class="choice-grid" id="dependencyChoices"></div>
+        <div class="field">
+          <label for="dependencyInput">Something we missed</label>
+          <div class="tag-builder">
+            <input id="dependencyInput" type="text" placeholder="Example: my employer's sign-in system">
+            <button class="btn btn-soft" id="addDependency" type="button">Add outside service</button>
+          </div>
+          <div class="selected-list" id="customDependencies" aria-live="polite"></div>
+        </div>
+        <div class="validation" id="validation4" role="alert"></div>
+        <div class="actions"><button class="btn btn-secondary" data-back="3">Back</button><button class="btn btn-primary" id="buildMap" type="button">Create my starting map</button></div>
+      </section>
+
+      <section class="step map-step" data-step="5" aria-labelledby="step5Title">
+        <div class="map-heading">
+          <p class="eyebrow">Version 1</p>
+          <h2 id="step5Title">Make the map tell the truth as you understand it now.</h2>
+          <p>Move anything. Rename it. Add what is missing. Connect pieces that rely on one another. Mark something as an assumption when you are not sure.</p>
+        </div>
+        <div class="workspace">
+          <div class="canvas-wrap">
+            <svg id="mapCanvas" viewBox="0 0 900 760" role="img" aria-labelledby="mapTitle mapDesc">
+              <title id="mapTitle">Editable home technology system map</title>
+              <desc id="mapDesc">A visual diagram created from your guided answers. Use the adjacent map outline for a text representation.</desc>
+              <defs>
+                <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#7d91a5"></path></marker>
+                <marker id="arrowNew" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L8,3 z" fill="#9a5b08"></path></marker>
+              </defs>
+              <g id="edgeLayer"></g><g id="nodeLayer"></g>
+            </svg>
+          </div>
+          <aside class="map-panel" aria-label="Map editing controls">
+            <div class="panel-section">
+              <h3>Add to the map</h3>
+              <div class="compact-grid">
+                <button class="btn btn-soft" id="addNodeBtn" type="button">Add a piece</button>
+                <button class="btn btn-soft" id="addEdgeBtn" type="button">Connect two pieces</button>
+              </div>
+            </div>
+            <div class="panel-section">
+              <h3>Selected piece</h3>
+              <p id="selectedHelp">Select a piece on the map or in the outline.</p>
+              <button class="btn btn-secondary" id="editNodeBtn" type="button" disabled>Edit selected piece</button>
+            </div>
+            <div class="panel-section">
+              <h3>Map outline</h3>
+              <p>This is the text equivalent of the visual map.</p>
+              <ul class="node-list" id="nodeList"></ul>
+              <h3 style="margin-top:1rem">Relationships</h3>
+              <ul class="edge-list" id="edgeList"></ul>
+            </div>
+          </aside>
+        </div>
+        <div class="map-toolbar">
+          <button class="btn btn-secondary" data-back="4">Back to answers</button>
+          <div class="actions-right">
+            <button class="btn btn-soft" id="fitMap" type="button">Arrange map</button>
+            <button class="btn btn-primary" id="saveV1" type="button">Save Version 1 and reveal something new</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" data-step="6" aria-labelledby="step6Title">
+        <div class="step-intro">
+          <p class="eyebrow">Version 2</p>
+          <h2 id="step6Title">New information can change the picture.</h2>
+          <p>Qonduit selected a question based on what you included. It is not claiming the example is true for your home. Investigate it and add only what is true.</p>
+        </div>
+        <div class="reveal" id="revealCard" aria-live="polite"></div>
+        <button class="btn btn-primary" id="reviseMap" type="button">Open my map and revise it</button>
+
+        <div id="version2Area" hidden>
+          <div class="workspace" style="margin-top:1rem;border:1px solid var(--line)">
+            <div class="canvas-wrap">
+              <svg id="mapCanvasV2" viewBox="0 0 900 760" role="img" aria-label="Version 2 editable home technology map"><g id="edgeLayerV2"></g><g id="nodeLayerV2"></g></svg>
+            </div>
+            <aside class="map-panel" aria-label="Version 2 map editing controls">
+              <div class="panel-section">
+                <h3>Revise your map</h3>
+                <p>Add only what applies. You may also change an existing relationship or mark something as uncertain.</p>
+                <div class="compact-grid">
+                  <button class="btn btn-soft" id="addNodeBtnV2" type="button">Add a piece</button>
+                  <button class="btn btn-soft" id="addEdgeBtnV2" type="button">Connect pieces</button>
+                </div>
+                <button class="btn btn-secondary" id="editNodeBtnV2" style="margin-top:.55rem" type="button" disabled>Edit selected</button>
+              </div>
+              <div class="panel-section">
+                <h3>Version 2 outline</h3>
+                <ul class="node-list" id="nodeListV2"></ul>
+                <h3 style="margin-top:1rem">Relationships</h3>
+                <ul class="edge-list" id="edgeListV2"></ul>
+              </div>
+            </aside>
+          </div>
+          <div class="map-toolbar" style="border:1px solid var(--line);border-top:0">
+            <button class="btn btn-soft" id="fitMapV2" type="button">Arrange map</button>
+            <button class="btn btn-primary" id="saveV2" type="button">Save Version 2</button>
+          </div>
+        </div>
+
+        <div id="reflectionArea" hidden>
+          <h2 style="margin-top:1.7rem">What changed in your picture?</h2>
+          <div class="comparison" id="comparison"></div>
+          <div class="field"><label for="reflectionVisible">What became visible in Version 2 that you did not see in Version 1?</label><textarea id="reflectionVisible"></textarea></div>
+          <div class="field"><label for="reflectionQuestion">What question would you ask next before looking at a control?</label><textarea id="reflectionQuestion"></textarea></div>
+          <div class="download-grid">
+            <article class="download-card"><h3>Download the map image</h3><p>A PNG you can view, share, or place in a document.</p><button class="btn btn-primary" id="downloadPng" type="button">Download PNG</button></article>
+            <article class="download-card"><h3>Download the editable project</h3><p>A Qonduit JSON file containing both versions and your reflection. Import support can be added later.</p><button class="btn btn-primary" id="downloadProject" type="button">Download project file</button></article>
+          </div>
+          <p class="privacy-reminder"><strong>Nothing is autosaved.</strong> Download what you want to keep before closing or refreshing this page.</p>
+          <div class="actions"><button class="btn btn-danger" id="startOver" type="button">Clear everything and start over</button></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="site-footer">Qonduit is a Ypifany project. The earlier <a href="operations-situation-map.html">Operations Situation Map prototype</a> is preserved for later development.</footer>
+
+  <div class="modal-backdrop" id="nodeModal" role="dialog" aria-modal="true" aria-labelledby="nodeModalTitle">
+    <div class="modal">
+      <h2 id="nodeModalTitle">Add a piece</h2>
+      <div class="field"><label for="nodeLabel">What do you call it?</label><input id="nodeLabel" type="text" placeholder="Example: work laptop"></div>
+      <div class="field"><label for="nodeType">What kind of piece is it?</label><select id="nodeType"><option value="device">Device or equipment</option><option value="person">Person or group</option><option value="service">Outside service</option><option value="purpose">Purpose or activity</option><option value="system">System</option></select></div>
+      <div class="field"><label for="nodeCertainty">How sure are you?</label><select id="nodeCertainty"><option value="known">I know this</option><option value="assumed">I am assuming this</option><option value="check">I need to check</option></select></div>
+      <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveNode" type="button">Save piece</button></div>
     </div>
   </div>
 
-  <!-- Threat level -->
-  <div class="threatbar">
-    <div class="tl-lbl">Threat level</div>
-    <div class="tl-levels" id="tlLevels"></div>
-  </div>
-
-  <!-- Alert banners -->
-  <div id="banners"></div>
-
-  <!-- Main body -->
-  <div class="body">
-    <div class="mapwrap"><canvas id="mc" width="640" height="380"></canvas></div>
-    <div class="sidebar">
-      <div class="ss" style="flex:1;overflow:hidden;">
-        <div class="stitle">What&rsquo;s happening</div>
-        <div class="feed" id="feed"></div>
-      </div>
-      <div class="ss">
-        <div class="stitle">Inside Qonduit</div>
-        <div id="intItems"></div>
-      </div>
+  <div class="modal-backdrop" id="edgeModal" role="dialog" aria-modal="true" aria-labelledby="edgeModalTitle">
+    <div class="modal">
+      <h2 id="edgeModalTitle">Connect two pieces</h2>
+      <div class="field"><label for="edgeFrom">From</label><select id="edgeFrom"></select></div>
+      <div class="field"><label for="edgeTo">To</label><select id="edgeTo"></select></div>
+      <div class="field"><label for="edgeLabel">How are they related?</label><input id="edgeLabel" type="text" placeholder="Example: connects to, uses, supports"></div>
+      <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveEdge" type="button">Save relationship</button></div>
     </div>
   </div>
 
-  <!-- Metrics -->
-  <div class="metrics">
-    <div class="mc2"><div class="ml2">Active connections</div><div class="mv2 b" id="mC">9</div><div class="md2">partners + clients</div></div>
-    <div class="mc2"><div class="ml2">Data leaving / min</div><div class="mv2 g" id="mV">2.4 MB</div><div class="md2" id="mVn">normal range</div></div>
-    <div class="mc2"><div class="ml2">Flags raised</div><div class="mv2 g" id="mF">0</div><div class="md2" id="mFn">none active</div></div>
-    <div class="mc2"><div class="ml2">Employees notified</div><div class="mv2 g" id="mE">0</div><div class="md2" id="mEn">no active alerts</div></div>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <span class="footer-l">Qonduit Security Operations &mdash; Powered by Ypifany</span>
-    <span class="footer-r">Questions? <a href="mailto:security@qonduit.io">security@qonduit.io</a></span>
-  </div>
-
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script>
-const CW=640, CH=380;
-const canvas=document.getElementById('mc');
-const ctx=canvas.getContext('2d');
-
-const LEVELS=[
-  {n:5,name:'GREEN', label:'All Clear',         dot:'#1D9E75'},
-  {n:4,name:'BLUE',  label:'Watch',              dot:'#185FA5'},
-  {n:3,name:'YELLOW',label:'Charlie · Caution',  dot:'#BA7517'},
-  {n:2,name:'ORANGE',label:'Bravo · Elevated',   dot:'#993C1D'},
-  {n:1,name:'RED',   label:'Alpha · Critical',   dot:'#A32D2D'},
-];
-
-let threat=5;
-function setThreat(n){
-  threat=n;
-  const el=document.getElementById('tlLevels');
-  el.innerHTML='';
-  LEVELS.forEach(l=>{
-    const d=document.createElement('div');
-    d.className='tl-item'+(l.n===n?' active':'');
-    d.innerHTML=`<div class="tl-dot" style="background:${l.dot}"></div>
-                 <div class="tl-name" style="color:${l.dot}">${l.name}</div>
-                 <div class="tl-sub">${l.n===n?l.label:''}</div>`;
-    el.appendChild(d);
-  });
-}
-setThreat(5);
-
-const NODE_DEF={
-  core:   {lon:-77.04,lat:38.90,lbl:['Qonduit HQ','Washington, DC'],r:16,fill:'#042C53',sk:'#378ADD',tc:'#E6F1FB'},
-  wh:     {lon:-90.05,lat:35.15,lbl:['WarehouseIQ','Memphis, TN'], r:11,fill:'#085041',sk:'#1D9E75',tc:'#E1F5EE'},
-  erp:    {lon:-74.01,lat:40.71,lbl:['Apex ERP','New York, NY'],   r:11,fill:'#26215C',sk:'#7F77DD',tc:'#EEEDFE'},
-  carrier:{lon:-84.39,lat:33.75,lbl:['CrossBridge','Atlanta, GA'], r:11,fill:'#3B6D11',sk:'#97C459',tc:'#EAF3DE'},
-  customs:{lon:-106.49,lat:31.76,lbl:['CBP Datalink','El Paso, TX'],r:10,fill:'#633806',sk:'#EF9F27',tc:'#FAEEDA'},
-  retail: {lon:-93.27,lat:44.98,lbl:['Summit Retail','Minneapolis'],r:10,fill:'#0C447C',sk:'#85B7EB',tc:'#E6F1FB'},
-  gov:    {lon:-117.15,lat:32.72,lbl:['DLA West','San Diego, CA'], r:10,fill:'#3C3489',sk:'#AFA9EC',tc:'#EEEDFE'},
-  port:   {lon:-76.29,lat:36.85,lbl:['Port of Norfolk','Norfolk, VA'],r:10,fill:'#04342C',sk:'#5DCAA5',tc:'#E1F5EE'},
-  food:   {lon:-94.58,lat:39.10,lbl:['FreshRoute','Kansas City'],  r:10,fill:'#173404',sk:'#639922',tc:'#EAF3DE'},
-};
-
-const UNKNOWN={
-  charlotte:{lon:-80.84,lat:35.23,lbl:'Charlotte, NC'},
-  phoenix:  {lon:-112.07,lat:33.45,lbl:'Phoenix, AZ'},
-  detroit:  {lon:-83.04,lat:42.33,lbl:'Detroit, MI'},
-};
-
-let nodes={}, susp=[], parts=[], tick=0;
-const offsc=document.createElement('canvas');
-offsc.width=CW; offsc.height=CH;
-let mapReady=false;
-
-const LINKS=[
-  {f:'core',t:'wh'},{f:'core',t:'erp'},{f:'core',t:'carrier'},
-  {f:'core',t:'customs'},{f:'core',t:'retail'},{f:'core',t:'gov'},
-  {f:'core',t:'port'},{f:'core',t:'food'},
-];
-
-const SIM=Date.now();
-function sec(){return(Date.now()-SIM)/1000;}
-
-let tlIdx=0;
-const TL=[
-  {at:0,  fn:()=>setThreat(5)},
-  {at:20, fn:()=>{setThreat(4);ev('b','Network traffic slightly above normal — all connections stable');}},
-  {at:30, fn:()=>{
-    setThreat(3);
-    banner('ph','<strong>⚠️ Phishing alert:</strong> 3 employees reported a suspicious email — Subject: "Q4 Invoice Correction — Action Required" — Do NOT click links. Forward to <strong>security@qonduit.io</strong>');
-    ev('a','3 employees flagged a phishing email. Security team is tracking it.');
-    addInt('warn','⚠','Employees: delete the Q4 invoice email if you received it');
-    updateMetrics();
-  }},
-  {at:50, fn:()=>{addSusp('erp','charlotte');ev('r','Unverified system pulling data through Apex ERP — source not recognized. Team investigating.');}},
-  {at:72, fn:()=>{setThreat(2);addInt('warn','📊','ERP data volume 18% above baseline — security watching closely');ev('a','Data volume through New York is elevated — being monitored');updateMetrics();}},
-  {at:90, fn:()=>{susp=[];ev('b','Unverified connection dropped — team tracking where it moved to');}},
-  {at:97, fn:()=>{
-    addSusp('customs','phoenix');
-    ev('r','Second unverified connection — different location, same pattern. Escalating.');
-    banner('int','<strong>ℹ️ All employees:</strong> As a precaution, do not open attachments or click unfamiliar links until further notice.');
-  }},
-  {at:114,fn:()=>{
-    setThreat(1);
-    addSusp('carrier','detroit');
-    ev('r','Multiple unverified connections active. Security team is responding. Business operations continue — stay calm.');
-    addInt('alrt','🚨','Incident response activated — leadership briefed');
-    updateMetrics();
-  }},
-  {at:132,fn:()=>{ev('b','Leadership briefed. All teams: continue normal work. Updates every 15 minutes.');}},
-];
-
-function checkTL(){
-  while(tlIdx<TL.length && sec()>=TL[tlIdx].at){TL[tlIdx].fn();tlIdx++;}
-}
-
-let feedData=[
-  {dot:'g',text:'All 9 connections active and healthy',t:Date.now()-19*60000},
-  {dot:'g',text:'WarehouseIQ sync — 4,821 products updated across all clients',t:Date.now()-15*60000},
-  {dot:'b',text:'DLA West authenticated — shipment manifest transfer started',t:Date.now()-12*60000},
-  {dot:'g',text:'CrossBridge Carriers: 12 freight manifests confirmed',t:Date.now()-9*60000},
-  {dot:'g',text:'Summit Retail Group: 320 purchase orders loaded',t:Date.now()-6*60000},
-  {dot:'a',text:'FreshRoute Foods weekly report delayed — retry queued',t:Date.now()-4*60000},
-];
-
-function fmtT(ts){return new Date(ts).toUTCString().split(' ')[4];}
-
-function renderFeed(){
-  const el=document.getElementById('feed');
-  el.innerHTML='';
-  feedData.slice(0,6).forEach(e=>{
-    const d=document.createElement('div');
-    d.className='fev';
-    d.innerHTML=`<div class="fd ${e.dot}"></div><div><div class="ft">${e.text}</div><div class="fts">${fmtT(e.t)}</div></div>`;
-    el.appendChild(d);
-  });
-}
-
-function ev(dot,text){
-  feedData.unshift({dot,text,t:Date.now()});
-  if(feedData.length>20) feedData.pop();
-  renderFeed();
-}
-renderFeed();
-
-function banner(cls,html){
-  const el=document.getElementById('banners');
-  const d=document.createElement('div');
-  d.className=`phish-bar ${cls}`;
-  d.innerHTML=html;
-  el.appendChild(d);
-}
-
-let intState=[
-  {cls:'ok', icon:'✅', text:'All security scans passing'},
-  {cls:'ok', icon:'👥', text:'847 active sessions — all authorized'},
-  {cls:'ok', icon:'🔄', text:'Internal data movement: normal'},
-];
-
-function addInt(cls,icon,text){
-  intState.unshift({cls,icon,text});
-  if(intState.length>4) intState.pop();
-  renderInt();
-}
-
-function renderInt(){
-  const el=document.getElementById('intItems');
-  el.innerHTML='';
-  intState.slice(0,3).forEach(i=>{
-    const d=document.createElement('div');
-    d.className=`iitem ${i.cls}`;
-    d.innerHTML=`<span style="flex-shrink:0;">${i.icon}</span><span>${i.text}</span>`;
-    el.appendChild(d);
-  });
-}
-renderInt();
-
-function addSusp(tid,locId){
-  const loc=UNKNOWN[locId];
-  const pix=window._proj?window._proj([loc.lon,loc.lat]):null;
-  susp.push({tid,lon:loc.lon,lat:loc.lat,lbl:loc.lbl,pix});
-}
-
-function updateMetrics(){
-  const s=sec();
-  const vol=(2.4+Math.sin(s*.28)*.22+(s>50?.75:0)+(s>114?.45:0)).toFixed(1);
-  const flags=susp.length;
-  const emp=s>30?(s>97?Math.min(847,3+Math.floor((s-97)*3)):3):0;
-
-  const vE=document.getElementById('mV');
-  vE.textContent=vol+' MB'; vE.className='mv2 '+(parseFloat(vol)>3?'a':'g');
-  document.getElementById('mVn').textContent=parseFloat(vol)>3?'above normal':'normal range';
-
-  const fE=document.getElementById('mF');
-  fE.textContent=flags; fE.className='mv2 '+(flags>1?'r':flags>0?'a':'g');
-  document.getElementById('mFn').textContent=flags===0?'none active':flags===1?'1 — investigating':flags+' — responding';
-
-  const eE=document.getElementById('mE');
-  eE.textContent=emp>0?emp.toLocaleString():'0'; eE.className='mv2 '+(emp>0?'a':'g');
-  document.getElementById('mEn').textContent=emp>0?'received notice':'no active alerts';
-}
-
-// Particle class
-class P {
-  constructor(fx,fy,tx,ty,status){
-    this.fx=fx;this.fy=fy;this.tx=tx;this.ty=ty;
-    this.t=0;this.ph=Math.random()*Math.PI*2;
-    this.status=status||'ok';
-    this.spd=status==='alert'?.011:status==='warn'?.007:.0035;
-    this.paused=false;this.pt=0;
-  }
-  upd(){
-    if(this.paused){this.pt--;if(this.pt<=0)this.paused=false;return;}
-    if(Math.random()<.0007*(6-threat)){this.paused=true;this.pt=25+Math.floor(Math.random()*55);}
-    const sv=.6+.8*Math.sin(this.ph+tick*.028);
-    const tb=threat<=2?1.7:threat===3?1.25:1;
-    this.t+=this.spd*sv*tb;
-  }
-  get alive(){return this.t<1;}
-  draw(){
-    const x=this.fx+(this.tx-this.fx)*this.t;
-    const y=this.fy+(this.ty-this.fy)*this.t;
-    ctx.save();
-    ctx.globalAlpha=Math.min(1,(1-this.t)*2.5);
-    ctx.beginPath();ctx.arc(x,y,this.status==='alert'?3.5:2.5,0,Math.PI*2);
-    ctx.fillStyle=this.status==='alert'?'#E24B4A':this.status==='warn'?'#EF9F27':'#1D9E75';
-    ctx.fill();ctx.restore();
-  }
-}
-
-function spawnParts(){
-  LINKS.forEach(lk=>{
-    const a=nodes[lk.f],b=nodes[lk.t];if(!a||!b)return;
-    const isSusp=susp.some(s=>s.tid===lk.t);
-    const rate=isSusp?.1:.04+(threat<=2?.03:0);
-    if(Math.random()<rate) parts.push(new P(a.x,a.y,b.x,b.y,isSusp?'alert':'ok'));
-  });
-  susp.forEach(s=>{
-    const src=nodes[s.tid];if(!src||!s.pix)return;
-    if(Math.random()<.12) parts.push(new P(src.x,src.y,s.pix[0],s.pix[1],'alert'));
-  });
-}
-
-function drawLinks(){
-  LINKS.forEach(lk=>{
-    const a=nodes[lk.f],b=nodes[lk.t];if(!a||!b)return;
-    const isSusp=susp.some(s=>s.tid===lk.t);
-    ctx.save();ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
-    ctx.strokeStyle=isSusp?'rgba(226,75,74,.4)':'rgba(29,158,117,.2)';
-    ctx.lineWidth=isSusp?1.5:1;
-    ctx.stroke();ctx.restore();
-  });
-}
-
-function drawSusp(){
-  susp.forEach(s=>{
-    const src=nodes[s.tid];if(!src||!s.pix)return;
-    const dash=Math.floor(tick/12)%2===0?[6,3]:[3,6];
-    ctx.save();
-    ctx.beginPath();ctx.moveTo(src.x,src.y);ctx.lineTo(s.pix[0],s.pix[1]);
-    ctx.setLineDash(dash);ctx.strokeStyle='rgba(226,75,74,.75)';ctx.lineWidth=1.5;
-    ctx.stroke();ctx.setLineDash([]);
-    const pulse=4+Math.sin(tick*.1)*2;
-    ctx.beginPath();ctx.arc(s.pix[0],s.pix[1],pulse+4,0,Math.PI*2);
-    ctx.strokeStyle='rgba(226,75,74,.2)';ctx.lineWidth=1.5;ctx.stroke();
-    ctx.beginPath();ctx.arc(s.pix[0],s.pix[1],5.5,0,Math.PI*2);
-    ctx.fillStyle='#E24B4A';ctx.fill();
-    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
-    ctx.font='bold 9px sans-serif';
-    ctx.fillStyle='#A32D2D';ctx.textAlign='center';
-    ctx.fillText('⚠ Unverified · '+s.lbl,s.pix[0],s.pix[1]-13);
-    ctx.restore();
-  });
-}
-
-function drawNodes(){
-  Object.keys(NODE_DEF).forEach(id=>{
-    const n=nodes[id];const d=NODE_DEF[id];if(!n)return;
-    const isSusp=susp.some(s=>s.tid===id);
-    ctx.save();
-    if(id==='core'){
-      ctx.beginPath();ctx.arc(n.x,n.y,d.r+6,0,Math.PI*2);
-      ctx.strokeStyle=d.sk;ctx.lineWidth=.5;ctx.stroke();
-    }
-    if(isSusp){
-      ctx.beginPath();ctx.arc(n.x,n.y,d.r+3+Math.sin(tick*.09)*1.5,0,Math.PI*2);
-      ctx.strokeStyle='rgba(226,75,74,.5)';ctx.lineWidth=1.5;ctx.stroke();
-    }
-    // Circle
-    ctx.beginPath();ctx.arc(n.x,n.y,d.r,0,Math.PI*2);
-    ctx.fillStyle=d.fill;ctx.fill();
-    ctx.strokeStyle=isSusp?'#E24B4A':d.sk;ctx.lineWidth=2;ctx.stroke();
-
-    // Labels drawn OUTSIDE the circle, below it, in dark text
-    // White outline first for contrast over the map background
-    const ly=n.y+d.r+5;
-    ctx.textAlign='center';ctx.textBaseline='top';
-    ctx.font='700 10px sans-serif';
-    ctx.lineJoin='round';ctx.lineWidth=3;
-    ctx.strokeStyle='rgba(255,255,255,0.92)';
-    d.lbl.forEach((ln,i)=>ctx.strokeText(ln,n.x,ly+i*12));
-    // Dark text on top
-    ctx.fillStyle='#12202E';
-    d.lbl.forEach((ln,i)=>ctx.fillText(ln,n.x,ly+i*12));
-
-    ctx.restore();
-  });
-}
-
-function frame(){
-  ctx.clearRect(0,0,CW,CH);
-  if(mapReady) ctx.drawImage(offsc,0,0);
-  drawLinks();drawSusp();
-  parts.forEach(p=>p.draw());
-  drawNodes();
-}
-
-function loop(){
-  tick++;
-  document.getElementById('clk').textContent=new Date().toUTCString().split(' ')[4]+' UTC';
-  if(tick%3===0){checkTL();updateMetrics();}
-  spawnParts();
-  parts.forEach(p=>p.upd());
-  parts=parts.filter(p=>p.alive);
-  frame();
-  requestAnimationFrame(loop);
-}
-
-// Load map
-d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us=>{
-  const proj=d3.geoAlbersUsa().scale(700).translate([310,185]);
-  window._proj=proj;
-  Object.keys(NODE_DEF).forEach(id=>{
-    const def=NODE_DEF[id];
-    const px=proj([def.lon,def.lat]);
-    if(px) nodes[id]={x:px[0],y:px[1]};
-  });
-  susp.forEach(s=>{const px=proj([s.lon,s.lat]);if(px)s.pix=px;});
-  const oc=offsc.getContext('2d');
-  const path=d3.geoPath().projection(proj).context(oc);
-  topojson.feature(us,us.objects.states).features.forEach(f=>{
-    oc.beginPath();path(f);
-    oc.fillStyle='#D8E4F0';oc.fill();
-    oc.strokeStyle='#ffffff';oc.lineWidth=1;oc.stroke();
-  });
-  mapReady=true;
-  loop();
-}).catch(()=>{
-  Object.keys(NODE_DEF).forEach(id=>{
-    const d=NODE_DEF[id];
-    nodes[id]={x:CW/2+(d.lon+90)*3.8,y:CH/2-(d.lat-38)*5.2};
-  });
-  loop();
-});
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
