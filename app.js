@@ -279,9 +279,13 @@
 
   function renderMap(which) {
     const refs = mapRefs(which); if (!refs.map) return;
-    refs.svg.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${refs.map.viewHeight || 720}`);
+    const viewHeight = refs.map.viewHeight || 720;
+    refs.svg.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${viewHeight}`);
+    const renderedWidth = window.matchMedia("(max-width: 760px)").matches ? 760 : refs.svg.parentElement.clientWidth;
+    refs.svg.style.height = `${Math.max(refs.svg.parentElement.clientHeight, Math.round(renderedWidth * viewHeight / MAP_WIDTH))}px`;
     refs.edgeLayer.innerHTML = ""; refs.nodeLayer.innerHTML = "";
     const selected = state.selected[which];
+    const shownRelationshipLabels = new Set();
     refs.map.edges.forEach(edge => {
       const a = refs.map.nodes.find(n => n.id === edge.from); const b = refs.map.nodes.find(n => n.id === edge.to);
       if (!a || !b) return;
@@ -289,7 +293,9 @@
       const dimmed = selected && !related;
       const line = svgEl("line", {x1:a.x + NODE_WIDTH / 2, y1:a.y + NODE_HEIGHT / 2, x2:b.x + NODE_WIDTH / 2, y2:b.y + NODE_HEIGHT / 2, class:`svg-edge${edge.addedV2 ? " new" : ""}${related ? " active" : ""}${dimmed ? " dimmed" : ""}`});
       refs.edgeLayer.append(line);
-      const text = svgEl("text", {x:(a.x+b.x)/2 + NODE_WIDTH / 2, y:(a.y+b.y)/2 + NODE_HEIGHT / 2 - 8, class:`edge-label${related ? " active" : ""}${dimmed ? " dimmed" : ""}`, "text-anchor":"middle", "aria-hidden":"true"});
+      const showRelationshipLabel = related && !shownRelationshipLabels.has(edge.label);
+      if (showRelationshipLabel) shownRelationshipLabels.add(edge.label);
+      const text = svgEl("text", {x:(a.x+b.x)/2 + NODE_WIDTH / 2, y:(a.y+b.y)/2 + NODE_HEIGHT / 2 - 8, class:`edge-label${showRelationshipLabel ? " active" : ""}${dimmed ? " dimmed" : ""}`, "text-anchor":"middle", "aria-hidden":"true"});
       text.textContent = edge.label; refs.edgeLayer.append(text);
     });
     refs.map.nodes.forEach(node => {
@@ -488,7 +494,7 @@
 
   function downloadPng() {
     const source=$("#mapCanvasV2"); const copy=source.cloneNode(true); const vb=source.viewBox.baseVal; const outputWidth=1600; const outputHeight=Math.round(outputWidth*(vb.height/vb.width)); copy.setAttribute("xmlns",SVG_NS); copy.setAttribute("width",String(outputWidth));copy.setAttribute("height",String(outputHeight));
-    copy.querySelectorAll(".dimmed").forEach(el=>el.classList.remove("dimmed")); copy.querySelectorAll(".edge-label").forEach(el=>el.classList.add("active"));
+    copy.querySelectorAll(".dimmed").forEach(el=>el.classList.remove("dimmed"));
     const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.edge-label{font-size:12px;font-weight:700;fill:#3f5367;paint-order:stroke;stroke:#fff;stroke-width:5px}.node-group text{font-size:13px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}`; copy.insertBefore(style,copy.firstChild);
     const bg=document.createElementNS(SVG_NS,"rect");bg.setAttribute("width","100%");bg.setAttribute("height","100%");bg.setAttribute("fill","#f8fbfe");copy.insertBefore(bg,style.nextSibling);
     const xml=new XMLSerializer().serializeToString(copy),svgBlob=new Blob([xml],{type:"image/svg+xml"}),url=URL.createObjectURL(svgBlob),img=new Image();
