@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Build and revise a truthful map of how technology supports your home.">
   <title>Qonduit | See the System You Already Live In</title>
-  <link rel="stylesheet" href="styles.css?v=20261015-3">
+  <link rel="stylesheet" href="styles.css?v=20261015-4">
 </head>
 <body>
   <a class="skip-link" href="#experience">Skip to the experience</a>
@@ -138,7 +138,11 @@
               <g id="edgeLayer"></g><g id="nodeLayer"></g>
             </svg>
           </div>
-          <aside class="map-panel" aria-label="Map editing controls">
+          <aside class="map-panel" id="mapPanel" aria-label="Map editing controls">
+            <div class="panel-jump" aria-label="Outline navigation">
+              <button class="btn btn-soft" type="button" data-panel-top="mapPanel">↑ Back to controls</button>
+              <button class="btn btn-secondary" type="button" data-close-outline="outlineV1" aria-controls="outlineV1" aria-expanded="true">Close outline</button>
+            </div>
             <div class="panel-section">
               <h3>Add to the map</h3>
               <div class="compact-grid">
@@ -151,7 +155,7 @@
               <p id="selectedHelp" aria-live="polite">Select a box on the map or use a button in the outline.</p>
               <button class="btn btn-secondary" id="editNodeBtn" type="button" disabled>Edit selected piece</button>
             </div>
-            <details class="panel-section map-outline" open>
+            <details class="panel-section map-outline" id="outlineV1" open>
               <summary>Map outline</summary>
               <p>Each button selects and highlights the matching box in the map.</p>
               <ul class="node-list" id="nodeList"></ul>
@@ -186,17 +190,22 @@
             <div class="canvas-wrap">
               <svg id="mapCanvasV2" viewBox="0 0 900 760" role="img" aria-label="Version 2 editable home technology map"><g id="edgeLayerV2"></g><g id="nodeLayerV2"></g></svg>
             </div>
-            <aside class="map-panel" aria-label="Version 2 map editing controls">
+            <aside class="map-panel" id="mapPanelV2" aria-label="Version 2 map editing controls">
+              <div class="panel-jump" aria-label="Version 2 outline navigation">
+                <button class="btn btn-soft" type="button" data-panel-top="mapPanelV2">↑ Back to controls</button>
+                <button class="btn btn-secondary" type="button" data-close-outline="outlineV2" aria-controls="outlineV2" aria-expanded="true">Close outline</button>
+              </div>
               <div class="panel-section">
                 <h3>Revise your map</h3>
                 <p>Add only what applies. You may also change an existing relationship or mark something as uncertain.</p>
+                <p id="selectedHelpV2" aria-live="polite">Select a box on the map or use a button in the outline.</p>
                 <div class="compact-grid">
                   <button class="btn btn-soft" id="addNodeBtnV2" type="button">Add a piece</button>
                   <button class="btn btn-soft" id="addEdgeBtnV2" type="button">Connect pieces</button>
                 </div>
                 <button class="btn btn-secondary" id="editNodeBtnV2" style="margin-top:.55rem" type="button" disabled>Edit selected</button>
               </div>
-              <details class="panel-section map-outline" open>
+              <details class="panel-section map-outline" id="outlineV2" open>
                 <summary>Version 2 outline</summary>
                 <p>Each button selects and highlights the matching box in the map.</p>
                 <ul class="node-list" id="nodeListV2"></ul>
@@ -251,6 +260,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261015-3"></script>
+  <script src="app.js?v=20261015-4"></script>
 </body>
 </html>
