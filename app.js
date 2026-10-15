@@ -400,18 +400,18 @@
     const delNode = e.target.closest("[data-delete-node]");
     const delEdge = e.target.closest("[data-delete-edge]");
     const panelTop = e.target.closest("[data-panel-top]");
-    const outlineToggle = e.target.closest("[data-close-outline]");
+    const panelOutline = e.target.closest("[data-panel-outline]");
     if (panelTop) {
       const panel = document.getElementById(panelTop.dataset.panelTop);
       panel?.scrollTo({top:0,behavior:"auto"});
     }
-    if (outlineToggle) {
-      const outline = document.getElementById(outlineToggle.dataset.closeOutline);
+    if (panelOutline) {
+      const outline = document.getElementById(panelOutline.dataset.panelOutline);
       if (outline) {
-        outline.open = !outline.open;
-        outlineToggle.textContent = outline.open ? "Close outline" : "Open outline";
-        outlineToggle.setAttribute("aria-expanded", String(outline.open));
-        if (!outline.open) outline.closest(".map-panel")?.scrollTo({top:0,behavior:"auto"});
+        outline.open = true;
+        const panel = outline.closest(".map-panel");
+        panel?.scrollTo({top:Math.max(0, outline.offsetTop - 64), behavior:"auto"});
+        outline.querySelector("summary")?.focus({preventScroll:true});
       }
     }
     if (select) {
