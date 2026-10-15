@@ -103,6 +103,11 @@
           <p>Your router and devices may be in your home, but they rely on things elsewhere. Choose what your household actually uses. These are outside services and dependencies.</p>
         </div>
         <div class="choice-grid" id="dependencyChoices"></div>
+        <details class="example-disclosure">
+          <summary>What is a device company account or service?</summary>
+          <p>It is an account, app, or online service run by the company that made a device. The device may use it for setup, updates, storage, remote control, or paid features.</p>
+          <p><strong>Examples:</strong> an Apple Account and iCloud for an iPhone, a Samsung account or SmartThings, a Roku account, Amazon Alexa, Google Home, HP Instant Ink, or a Peloton account. Choose this only when something like this is part of your home system.</p>
+        </details>
         <div class="field">
           <label for="dependencyInput">Something we missed</label>
           <div class="tag-builder">
@@ -119,7 +124,7 @@
         <div class="map-heading">
           <p class="eyebrow">Version 1</p>
           <h2 id="step5Title">Make the map tell the truth as you understand it now.</h2>
-          <p>Move anything. Rename it. Add what is missing. Connect pieces that rely on one another. Mark something as an assumption when you are not sure.</p>
+          <p>Move anything. Rename it. Add what is missing. Connect pieces that rely on one another. Select a box to emphasize its direct connections and relationship words.</p>
         </div>
         <div class="workspace">
           <div class="canvas-wrap">
@@ -143,16 +148,19 @@
             </div>
             <div class="panel-section">
               <h3>Selected piece</h3>
-              <p id="selectedHelp">Select a piece on the map or in the outline.</p>
+              <p id="selectedHelp" aria-live="polite">Select a box on the map or use a button in the outline.</p>
               <button class="btn btn-secondary" id="editNodeBtn" type="button" disabled>Edit selected piece</button>
             </div>
-            <div class="panel-section">
-              <h3>Map outline</h3>
-              <p>This is the text equivalent of the visual map.</p>
+            <details class="panel-section map-outline" open>
+              <summary>Map outline</summary>
+              <p>Each button selects and highlights the matching box in the map.</p>
               <ul class="node-list" id="nodeList"></ul>
-              <h3 style="margin-top:1rem">Relationships</h3>
+            </details>
+            <details class="panel-section map-outline">
+              <summary>Relationships</summary>
+              <p>Open this list when you want a text version of the connecting lines.</p>
               <ul class="edge-list" id="edgeList"></ul>
-            </div>
+            </details>
           </aside>
         </div>
         <div class="map-toolbar">
@@ -188,12 +196,15 @@
                 </div>
                 <button class="btn btn-secondary" id="editNodeBtnV2" style="margin-top:.55rem" type="button" disabled>Edit selected</button>
               </div>
-              <div class="panel-section">
-                <h3>Version 2 outline</h3>
+              <details class="panel-section map-outline" open>
+                <summary>Version 2 outline</summary>
+                <p>Each button selects and highlights the matching box in the map.</p>
                 <ul class="node-list" id="nodeListV2"></ul>
-                <h3 style="margin-top:1rem">Relationships</h3>
+              </details>
+              <details class="panel-section map-outline">
+                <summary>Relationships</summary>
                 <ul class="edge-list" id="edgeListV2"></ul>
-              </div>
+              </details>
             </aside>
           </div>
           <div class="map-toolbar" style="border:1px solid var(--line);border-top:0">
