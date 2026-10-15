@@ -285,6 +285,8 @@
     refs.svg.style.height = `${Math.max(refs.svg.parentElement.clientHeight, Math.round(renderedWidth * viewHeight / MAP_WIDTH))}px`;
     refs.edgeLayer.innerHTML = ""; refs.nodeLayer.innerHTML = "";
     const selected = state.selected[which];
+    const relatedEdges = selected ? refs.map.edges.filter(edge => edge.from === selected || edge.to === selected) : [];
+    const showLabelsOnMap = relatedEdges.length > 0 && relatedEdges.length <= 8;
     const shownRelationshipLabels = new Set();
     refs.map.edges.forEach(edge => {
       const a = refs.map.nodes.find(n => n.id === edge.from); const b = refs.map.nodes.find(n => n.id === edge.to);
@@ -293,10 +295,21 @@
       const dimmed = selected && !related;
       const line = svgEl("line", {x1:a.x + NODE_WIDTH / 2, y1:a.y + NODE_HEIGHT / 2, x2:b.x + NODE_WIDTH / 2, y2:b.y + NODE_HEIGHT / 2, class:`svg-edge${edge.addedV2 ? " new" : ""}${related ? " active" : ""}${dimmed ? " dimmed" : ""}`});
       refs.edgeLayer.append(line);
-      const showRelationshipLabel = related && !shownRelationshipLabels.has(edge.label);
-      if (showRelationshipLabel) shownRelationshipLabels.add(edge.label);
-      const text = svgEl("text", {x:(a.x+b.x)/2 + NODE_WIDTH / 2, y:(a.y+b.y)/2 + NODE_HEIGHT / 2 - 8, class:`edge-label${showRelationshipLabel ? " active" : ""}${dimmed ? " dimmed" : ""}`, "text-anchor":"middle", "aria-hidden":"true"});
-      text.textContent = edge.label; refs.edgeLayer.append(text);
+      const showRelationshipLabel = showLabelsOnMap && related && !shownRelationshipLabels.has(edge.label);
+      if (showRelationshipLabel) {
+        shownRelationshipLabels.add(edge.label);
+        const selectedNode = a.id === selected ? a : b;
+        const otherNode = a.id === selected ? b : a;
+        const sx = selectedNode.x + NODE_WIDTH / 2, sy = selectedNode.y + NODE_HEIGHT / 2;
+        const ox = otherNode.x + NODE_WIDTH / 2, oy = otherNode.y + NODE_HEIGHT / 2;
+        const dx = ox - sx, dy = oy - sy, distance = Math.hypot(dx, dy) || 1;
+        const labelX = sx + dx / distance * 58;
+        const labelY = sy + dy / distance * 58;
+        const labelWidth = Math.max(88, edge.label.length * 9 + 24);
+        const bg = svgEl("rect", {x:String(labelX-labelWidth/2), y:String(labelY-17), width:String(labelWidth), height:"34", rx:"17", class:"edge-label-bg active", "aria-hidden":"true"});
+        const text = svgEl("text", {x:String(labelX), y:String(labelY+5), class:"edge-label active", "text-anchor":"middle", "aria-hidden":"true"});
+        text.textContent = edge.label; refs.edgeLayer.append(bg, text);
+      }
     });
     refs.map.nodes.forEach(node => {
       const style = typeStyle[node.type] || typeStyle.device;
@@ -364,14 +377,30 @@
       return `<li><button type="button" data-delete-edge="${edge.id}" data-map="${which}" aria-label="Delete relationship">×</button>${esc(a?.label || "Missing")} <strong>${esc(edge.label)}</strong> ${esc(b?.label || "Missing")}</li>`;
     }).join("") || "<li>No relationships yet.</li>";
     const selectedNode = refs.map.nodes.find(n => n.id === selected);
-    const help = which === "v1" ? $("#selectedHelp") : null;
-    if (help) help.textContent = selectedNode ? `${selectedNode.label} is highlighted. Its direct connections are emphasized.` : "Select a box on the map or use a button in the outline.";
+    const relationshipWords = [...new Set(refs.map.edges.filter(edge => edge.from === selected || edge.to === selected).map(edge => edge.label))];
+    const help = $(which === "v1" ? "#selectedHelp" : "#selectedHelpV2");
+    if (help) help.textContent = selectedNode ? `${selectedNode.label} is highlighted. Direct relationships: ${relationshipWords.join(", ") || "none yet"}.` : "Select a box on the map or use a button in the outline.";
   }
 
   document.addEventListener("click", e => {
     const select = e.target.closest("[data-select-node]");
     const delNode = e.target.closest("[data-delete-node]");
     const delEdge = e.target.closest("[data-delete-edge]");
+    const panelTop = e.target.closest("[data-panel-top]");
+    const outlineToggle = e.target.closest("[data-close-outline]");
+    if (panelTop) {
+      const panel = document.getElementById(panelTop.dataset.panelTop);
+      panel?.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+    }
+    if (outlineToggle) {
+      const outline = document.getElementById(outlineToggle.dataset.closeOutline);
+      if (outline) {
+        outline.open = !outline.open;
+        outlineToggle.textContent = outline.open ? "Close outline" : "Open outline";
+        outlineToggle.setAttribute("aria-expanded", String(outline.open));
+        if (!outline.open) outline.closest(".map-panel")?.scrollTo({top:0,behavior:"auto"});
+      }
+    }
     if (select) { state.selected[select.dataset.map] = select.dataset.selectNode; state.activeMap=select.dataset.map; renderMap(select.dataset.map); }
     if (delNode) {
       const refs=mapRefs(delNode.dataset.map), nodeId=delNode.dataset.deleteNode;
@@ -495,7 +524,7 @@
   function downloadPng() {
     const source=$("#mapCanvasV2"); const copy=source.cloneNode(true); const vb=source.viewBox.baseVal; const outputWidth=1600; const outputHeight=Math.round(outputWidth*(vb.height/vb.width)); copy.setAttribute("xmlns",SVG_NS); copy.setAttribute("width",String(outputWidth));copy.setAttribute("height",String(outputHeight));
     copy.querySelectorAll(".dimmed").forEach(el=>el.classList.remove("dimmed"));
-    const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.edge-label{font-size:12px;font-weight:700;fill:#3f5367;paint-order:stroke;stroke:#fff;stroke-width:5px}.node-group text{font-size:13px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}`; copy.insertBefore(style,copy.firstChild);
+    const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.edge-label-bg{fill:#fffdf8;stroke:#c97700;stroke-width:2}.edge-label{font-size:15px;font-weight:700;fill:#563300}.node-group text{font-size:13px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}`; copy.insertBefore(style,copy.firstChild);
     const bg=document.createElementNS(SVG_NS,"rect");bg.setAttribute("width","100%");bg.setAttribute("height","100%");bg.setAttribute("fill","#f8fbfe");copy.insertBefore(bg,style.nextSibling);
     const xml=new XMLSerializer().serializeToString(copy),svgBlob=new Blob([xml],{type:"image/svg+xml"}),url=URL.createObjectURL(svgBlob),img=new Image();
     img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=outputWidth;canvas.height=outputHeight;const ctx=canvas.getContext("2d");ctx.fillStyle="#f8fbfe";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);canvas.toBlob(blob=>{const out=URL.createObjectURL(blob),a=document.createElement("a");a.href=out;a.download="qonduit-home-system-map.png";a.click();setTimeout(()=>URL.revokeObjectURL(out),1000);state.downloaded=true;},"image/png");};img.src=url;
