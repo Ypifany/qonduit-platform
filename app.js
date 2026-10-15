@@ -281,7 +281,7 @@
     const refs = mapRefs(which); if (!refs.map) return;
     const viewHeight = refs.map.viewHeight || 720;
     refs.svg.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${viewHeight}`);
-    const renderedWidth = window.matchMedia("(max-width: 760px)").matches ? 760 : refs.svg.parentElement.clientWidth;
+    const renderedWidth = window.matchMedia("(max-width: 760px)").matches ? 820 : refs.svg.parentElement.clientWidth;
     refs.svg.style.height = `${Math.max(refs.svg.parentElement.clientHeight, Math.round(renderedWidth * viewHeight / MAP_WIDTH))}px`;
     refs.edgeLayer.innerHTML = ""; refs.nodeLayer.innerHTML = "";
     const selected = state.selected[which];
@@ -331,6 +331,7 @@
   function addNodeInteractions(group, node, which) {
     let dragging = false; let offset = {x:0,y:0};
     group.addEventListener("pointerdown", e => {
+      e.preventDefault();
       state.selected[which] = node.id; state.activeMap = which;
       dragging = true;
       const p = clientToSvg(e, mapRefs(which).svg); offset = {x:p.x-node.x, y:p.y-node.y};
@@ -363,6 +364,18 @@
   function clientToSvg(event, svg) {
     const point = svg.createSVGPoint(); point.x = event.clientX; point.y = event.clientY;
     return point.matrixTransform(svg.getScreenCTM().inverse());
+  }
+
+  function centerNodeInCanvas(which, nodeId) {
+    if (!window.matchMedia("(max-width: 760px)").matches) return;
+    const refs = mapRefs(which);
+    const node = refs.map?.nodes.find(item => item.id === nodeId);
+    const canvas = refs.svg?.parentElement;
+    if (!node || !canvas) return;
+    const scale = refs.svg.clientWidth / refs.svg.viewBox.baseVal.width;
+    const left = (node.x + NODE_WIDTH / 2) * scale - canvas.clientWidth / 2;
+    const top = (node.y + NODE_HEIGHT / 2) * scale - canvas.clientHeight / 2;
+    canvas.scrollTo({left:Math.max(0,left), top:Math.max(0,top), behavior:"smooth"});
   }
 
   function renderOutline(which) {
@@ -401,7 +414,12 @@
         if (!outline.open) outline.closest(".map-panel")?.scrollTo({top:0,behavior:"auto"});
       }
     }
-    if (select) { state.selected[select.dataset.map] = select.dataset.selectNode; state.activeMap=select.dataset.map; renderMap(select.dataset.map); }
+    if (select) {
+      state.selected[select.dataset.map] = select.dataset.selectNode;
+      state.activeMap=select.dataset.map;
+      renderMap(select.dataset.map);
+      requestAnimationFrame(() => centerNodeInCanvas(select.dataset.map, select.dataset.selectNode));
+    }
     if (delNode) {
       const refs=mapRefs(delNode.dataset.map), nodeId=delNode.dataset.deleteNode;
       refs.map.nodes=refs.map.nodes.filter(n=>n.id!==nodeId); refs.map.edges=refs.map.edges.filter(x=>x.from!==nodeId&&x.to!==nodeId); state.selected[delNode.dataset.map]=null; state.dirty=true; renderMap(delNode.dataset.map);
