@@ -390,7 +390,7 @@
     const outlineToggle = e.target.closest("[data-close-outline]");
     if (panelTop) {
       const panel = document.getElementById(panelTop.dataset.panelTop);
-      panel?.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+      panel?.scrollTo({top:0,behavior:"auto"});
     }
     if (outlineToggle) {
       const outline = document.getElementById(outlineToggle.dataset.closeOutline);
