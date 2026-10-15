@@ -270,7 +270,8 @@ textarea { min-height: 94px; resize: vertical; }
 .node-group .node-shape { stroke-width: 2; filter: drop-shadow(0 3px 4px rgba(4,44,83,.12)); }
 .node-group.selected .node-shape { stroke: #c97700 !important; stroke-width: 5; filter: drop-shadow(0 0 7px rgba(201,119,0,.45)); }
 .node-group.dimmed { opacity: 0.4; }
-.svg-edge.dimmed, .edge-label.dimmed { opacity: 0.14; }
+.svg-edge.dimmed { opacity: 0.14; }
+.edge-label.dimmed { opacity: 0; }
 .svg-edge.active { stroke: #c97700; stroke-width: 4; }
 .edge-label.active { opacity: 1; fill: #744500; }
 .node-group.added-v2 .node-shape { stroke: var(--amber); stroke-dasharray: 6 4; }
