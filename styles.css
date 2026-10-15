@@ -74,7 +74,7 @@ select:focus-visible,
 .hero {
   max-width: 1180px;
   margin: 0 auto;
-  padding: clamp(2.5rem, 7vw, 5.5rem) clamp(1rem, 4vw, 2rem) 2rem;
+  padding: clamp(1.6rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem) 1.5rem;
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
   gap: 2rem;
@@ -212,38 +212,67 @@ textarea { min-height: 94px; resize: vertical; }
 
 .validation { min-height: 1.4rem; margin-top: 0.75rem; color: var(--red); font-size: 0.9rem; font-weight: 650; }
 
+.example-disclosure {
+  margin-top: 0.9rem;
+  border: 1px solid #b4d0e9;
+  border-radius: 12px;
+  background: #f7fbff;
+  padding: 0.8rem 1rem;
+}
+.example-disclosure summary,
+.map-outline summary {
+  color: var(--navy);
+  font-weight: 800;
+  cursor: pointer;
+}
+.example-disclosure p { margin: 0.7rem 0 0; color: #44566a; }
+
 .map-step { padding: 0; }
 .map-heading { padding: 1.4rem 1.4rem 0; }
 .workspace {
-  min-height: 650px;
+  height: clamp(570px, 72vh, 720px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   border-top: 1px solid var(--line);
+  overflow: hidden;
 }
-.canvas-wrap { position: relative; min-width: 0; background-color: #f8fbfe; background-image: radial-gradient(#cbd8e3 1px, transparent 1px); background-size: 22px 22px; }
-#mapCanvas { display: block; width: 100%; height: 650px; touch-action: none; }
+.canvas-wrap { position: relative; min-width: 0; overflow: hidden; background-color: #f8fbfe; background-image: radial-gradient(#cbd8e3 1px, transparent 1px); background-size: 22px 22px; }
+#mapCanvas, #mapCanvasV2 { display: block; width: 100%; height: 100%; touch-action: none; }
 .canvas-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
-.map-panel { border-left: 1px solid var(--line); padding: 1rem; overflow-y: auto; background: white; }
+.map-panel { min-height: 0; border-left: 1px solid var(--line); padding: 1rem; overflow-y: auto; overscroll-behavior: contain; background: white; }
 .panel-section + .panel-section { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: 1rem; }
 .panel-section h3 { margin-bottom: 0.55rem; }
 .panel-section p { margin: 0 0 0.65rem; color: var(--muted); font-size: 0.88rem; }
+.map-outline > p { margin-top: 0.55rem; }
 .compact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
 .compact-grid .btn { padding: 0.55rem 0.65rem; font-size: 0.86rem; }
 
 .node-list, .edge-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
-.node-list li, .edge-list li { border: 1px solid var(--line); border-radius: 8px; padding: 0.55rem; font-size: 0.84rem; }
-.node-list button, .edge-list button { float: right; border: 0; background: transparent; color: var(--red); font-weight: 700; }
+.node-list li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 38px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #fff; }
+.node-list li.is-selected { border-color: #c97700; box-shadow: 0 0 0 2px #ffdca8; }
+.node-select { min-height: 48px; border: 0; background: #fff; color: var(--ink); padding: 0.55rem 0.65rem; text-align: left; }
+.node-select:hover { background: var(--blue-pale); }
+.node-select strong, .node-select small { display: block; }
+.node-select small { margin-top: 0.1rem; color: var(--muted); font-size: 0.76rem; }
+.node-delete { min-width: 38px; border: 0; border-left: 1px solid var(--line); background: #fff; color: var(--red); font-weight: 800; }
+.node-delete:hover { background: #fff3f3; }
+.edge-list li { border: 1px solid var(--line); border-radius: 8px; padding: 0.55rem; font-size: 0.84rem; }
+.edge-list button { float: right; min-width: 32px; min-height: 32px; border: 0; background: transparent; color: var(--red); font-weight: 700; }
 
 .map-toolbar { padding: 0.8rem 1rem; display: flex; gap: 0.55rem; flex-wrap: wrap; border-top: 1px solid var(--line); background: #fff; }
 
 .svg-edge { stroke: #7d91a5; stroke-width: 2; }
 .svg-edge.new { stroke: var(--amber); stroke-dasharray: 7 5; stroke-width: 3; }
-.edge-label { font-size: 11px; fill: #52677b; paint-order: stroke; stroke: #fff; stroke-width: 4px; }
+.edge-label { opacity: 0; font-size: 12px; font-weight: 700; fill: #3f5367; paint-order: stroke; stroke: #fff; stroke-width: 5px; }
 .node-group { cursor: grab; }
 .node-group:active { cursor: grabbing; }
-.node-group text { pointer-events: none; font-size: 12px; font-weight: 750; fill: var(--ink); }
+.node-group text { pointer-events: none; font-size: 13px; font-weight: 750; fill: var(--ink); }
 .node-group .node-shape { stroke-width: 2; filter: drop-shadow(0 3px 4px rgba(4,44,83,.12)); }
-.node-group.selected .node-shape { stroke: #e0911b !important; stroke-width: 4; }
+.node-group.selected .node-shape { stroke: #c97700 !important; stroke-width: 5; filter: drop-shadow(0 0 7px rgba(201,119,0,.45)); }
+.node-group.dimmed { opacity: 0.4; }
+.svg-edge.dimmed, .edge-label.dimmed { opacity: 0.14; }
+.svg-edge.active { stroke: #c97700; stroke-width: 4; }
+.edge-label.active { opacity: 1; fill: #744500; }
 .node-group.added-v2 .node-shape { stroke: var(--amber); stroke-dasharray: 6 4; }
 
 .reveal {
@@ -276,11 +305,11 @@ textarea { min-height: 94px; resize: vertical; }
 
 .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
 
-@media (max-width: 900px) {
+@media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; }
-  .workspace { grid-template-columns: 1fr; }
-  .map-panel { border-left: 0; border-top: 1px solid var(--line); }
-  #mapCanvas { height: 560px; }
+  .workspace { height: auto; grid-template-columns: 1fr; overflow: visible; }
+  .canvas-wrap { height: 500px; }
+  .map-panel { max-height: 440px; border-left: 0; border-top: 1px solid var(--line); }
 }
 
 @media (max-width: 620px) {
@@ -290,8 +319,8 @@ textarea { min-height: 94px; resize: vertical; }
   .actions { flex-direction: column; }
   .actions-right { margin-left: 0; }
   .actions .btn { width: 100%; }
-  .workspace { min-height: 0; }
-  #mapCanvas { height: 500px; }
+  .canvas-wrap { height: 460px; }
+  .map-panel { max-height: 390px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
