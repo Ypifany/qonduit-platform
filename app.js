@@ -47,7 +47,7 @@
       ["work-systems", "Work systems", "VPN, company email, employer applications, or company sign-in"],
       ["school-systems", "School systems", "School portals, learning apps, and student accounts"],
       ["cloud", "Cloud storage or backup", "Online photos, documents, files, or device backup"],
-      ["vendor", "Device maker's service", "An account or cloud service run by a device company"]
+      ["vendor", "Device company account or service", "Apple/iCloud, Samsung/SmartThings, Roku, Alexa, Google Home, HP Instant Ink, Peloton, or similar"]
     ]
   };
 
@@ -72,6 +72,9 @@
   const esc = (value = "") => String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   const id = (prefix = "n") => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   const clone = obj => JSON.parse(JSON.stringify(obj));
+  const MAP_WIDTH = 1000;
+  const NODE_WIDTH = 170;
+  const NODE_HEIGHT = 70;
 
   function renderChoiceGroup(containerId, group, name) {
     const el = document.getElementById(containerId);
@@ -276,24 +279,28 @@
 
   function renderMap(which) {
     const refs = mapRefs(which); if (!refs.map) return;
+    refs.svg.setAttribute("viewBox", `0 0 ${MAP_WIDTH} ${refs.map.viewHeight || 720}`);
     refs.edgeLayer.innerHTML = ""; refs.nodeLayer.innerHTML = "";
     const selected = state.selected[which];
     refs.map.edges.forEach(edge => {
       const a = refs.map.nodes.find(n => n.id === edge.from); const b = refs.map.nodes.find(n => n.id === edge.to);
       if (!a || !b) return;
-      const line = svgEl("line", {x1:a.x + 75, y1:a.y + 30, x2:b.x + 75, y2:b.y + 30, class:`svg-edge${edge.addedV2 ? " new" : ""}`});
+      const related = selected && (edge.from === selected || edge.to === selected);
+      const dimmed = selected && !related;
+      const line = svgEl("line", {x1:a.x + NODE_WIDTH / 2, y1:a.y + NODE_HEIGHT / 2, x2:b.x + NODE_WIDTH / 2, y2:b.y + NODE_HEIGHT / 2, class:`svg-edge${edge.addedV2 ? " new" : ""}${related ? " active" : ""}${dimmed ? " dimmed" : ""}`});
       refs.edgeLayer.append(line);
-      const text = svgEl("text", {x:(a.x+b.x)/2 + 75, y:(a.y+b.y)/2 + 22, class:"edge-label", "text-anchor":"middle"});
+      const text = svgEl("text", {x:(a.x+b.x)/2 + NODE_WIDTH / 2, y:(a.y+b.y)/2 + NODE_HEIGHT / 2 - 8, class:`edge-label${related ? " active" : ""}${dimmed ? " dimmed" : ""}`, "text-anchor":"middle", "aria-hidden":"true"});
       text.textContent = edge.label; refs.edgeLayer.append(text);
     });
     refs.map.nodes.forEach(node => {
       const style = typeStyle[node.type] || typeStyle.device;
-      const g = svgEl("g", {transform:`translate(${node.x} ${node.y})`, class:`node-group${selected === node.id ? " selected" : ""}${node.addedV2 ? " added-v2" : ""}`, tabindex:"0", role:"button", "aria-label":`${node.label}. ${node.type}. ${node.certainty}. ${node.detail || ""}`, "data-node-id":node.id});
-      const rect = svgEl("rect", {width:"150", height:"60", rx:"13", fill:style.fill, stroke:style.stroke, class:"node-shape"});
+      const isDimmed = selected && selected !== node.id && !refs.map.edges.some(edge => (edge.from === selected && edge.to === node.id) || (edge.to === selected && edge.from === node.id));
+      const g = svgEl("g", {transform:`translate(${node.x} ${node.y})`, class:`node-group${selected === node.id ? " selected" : ""}${isDimmed ? " dimmed" : ""}${node.addedV2 ? " added-v2" : ""}`, tabindex:"0", role:"button", "aria-label":`${node.label}. ${node.type}. ${node.certainty}. ${node.detail || ""}`, "data-node-id":node.id});
+      const rect = svgEl("rect", {width:String(NODE_WIDTH), height:String(NODE_HEIGHT), rx:"13", fill:style.fill, stroke:style.stroke, class:"node-shape"});
       if (node.certainty !== "known") rect.setAttribute("stroke-dasharray", node.certainty === "assumed" ? "7 5" : "3 4");
       const title = svgEl("title"); title.textContent = `${node.label}: ${node.detail || node.type} (${node.certainty})`; g.append(title, rect);
-      wrapLabel(node.label).forEach((line, i, arr) => {
-        const t = svgEl("text", {x:"75", y:String(31 - (arr.length-1)*8 + i*16), "text-anchor":"middle", style:`fill:${style.text || "#172433"}`}); t.textContent = line; g.append(t);
+      wrapLabel(node.label, 22).forEach((line, i, arr) => {
+        const t = svgEl("text", {x:String(NODE_WIDTH / 2), y:String(36 - (arr.length-1)*9 + i*18), "text-anchor":"middle", style:`fill:${style.text || "#172433"}`}); t.textContent = line; g.append(t);
       });
       addNodeInteractions(g, node, which);
       refs.nodeLayer.append(g);
@@ -315,7 +322,8 @@
     function move(e) {
       if (!dragging) return;
       const p = clientToSvg(e, mapRefs(which).svg);
-      node.x = Math.max(0, Math.min(750, p.x-offset.x)); node.y = Math.max(0, Math.min(690, p.y-offset.y));
+      const bounds = mapRefs(which).svg.viewBox.baseVal;
+      node.x = Math.max(0, Math.min(bounds.width - NODE_WIDTH, p.x-offset.x)); node.y = Math.max(0, Math.min(bounds.height - NODE_HEIGHT, p.y-offset.y));
       state.dirty = true; renderMap(which);
     }
     function stop() { dragging = false; window.removeEventListener("pointermove", move); renderMap(which); }
@@ -328,7 +336,8 @@
       else if (e.key === "ArrowUp") node.y -= amount;
       else if (e.key === "ArrowDown") node.y += amount;
       else return;
-      e.preventDefault(); node.x=Math.max(0,Math.min(750,node.x)); node.y=Math.max(0,Math.min(690,node.y)); state.dirty=true; renderMap(which);
+      const bounds = mapRefs(which).svg.viewBox.baseVal;
+      e.preventDefault(); node.x=Math.max(0,Math.min(bounds.width-NODE_WIDTH,node.x)); node.y=Math.max(0,Math.min(bounds.height-NODE_HEIGHT,node.y)); state.dirty=true; renderMap(which);
     });
   }
 
@@ -339,18 +348,25 @@
 
   function renderOutline(which) {
     const refs = mapRefs(which); if (!refs.map) return;
-    refs.nodeList.innerHTML = refs.map.nodes.map(n => `<li><button type="button" data-delete-node="${n.id}" data-map="${which}" aria-label="Delete ${esc(n.label)}">×</button><a href="#" data-select-node="${n.id}" data-map="${which}">${esc(n.label)}</a><br><small>${esc(n.certainty === "known" ? "Known" : n.certainty === "assumed" ? "Assumed" : "Need to check")}</small></li>`).join("");
+    const selected = state.selected[which];
+    refs.nodeList.innerHTML = refs.map.nodes.map(n => {
+      const status = n.certainty === "known" ? "Known" : n.certainty === "assumed" ? "Assumed" : "Need to check";
+      return `<li class="${selected === n.id ? "is-selected" : ""}"><button class="node-select" type="button" data-select-node="${n.id}" data-map="${which}" aria-pressed="${selected === n.id}"><strong>${esc(n.label)}</strong><small>${esc(status)}</small></button><button class="node-delete" type="button" data-delete-node="${n.id}" data-map="${which}" aria-label="Delete ${esc(n.label)}">×</button></li>`;
+    }).join("");
     refs.edgeList.innerHTML = refs.map.edges.map(edge => {
       const a=refs.map.nodes.find(n=>n.id===edge.from), b=refs.map.nodes.find(n=>n.id===edge.to);
       return `<li><button type="button" data-delete-edge="${edge.id}" data-map="${which}" aria-label="Delete relationship">×</button>${esc(a?.label || "Missing")} <strong>${esc(edge.label)}</strong> ${esc(b?.label || "Missing")}</li>`;
     }).join("") || "<li>No relationships yet.</li>";
+    const selectedNode = refs.map.nodes.find(n => n.id === selected);
+    const help = which === "v1" ? $("#selectedHelp") : null;
+    if (help) help.textContent = selectedNode ? `${selectedNode.label} is highlighted. Its direct connections are emphasized.` : "Select a box on the map or use a button in the outline.";
   }
 
   document.addEventListener("click", e => {
     const select = e.target.closest("[data-select-node]");
     const delNode = e.target.closest("[data-delete-node]");
     const delEdge = e.target.closest("[data-delete-edge]");
-    if (select) { e.preventDefault(); state.selected[select.dataset.map] = select.dataset.selectNode; state.activeMap=select.dataset.map; renderMap(select.dataset.map); }
+    if (select) { state.selected[select.dataset.map] = select.dataset.selectNode; state.activeMap=select.dataset.map; renderMap(select.dataset.map); }
     if (delNode) {
       const refs=mapRefs(delNode.dataset.map), nodeId=delNode.dataset.deleteNode;
       refs.map.nodes=refs.map.nodes.filter(n=>n.id!==nodeId); refs.map.edges=refs.map.edges.filter(x=>x.from!==nodeId&&x.to!==nodeId); state.selected[delNode.dataset.map]=null; state.dirty=true; renderMap(delNode.dataset.map);
@@ -363,12 +379,20 @@
     const buckets = {purpose:[],system:[],person:[],device:[],service:[]};
     refs.map.nodes.forEach(n => (buckets[n.type] || buckets.device).push(n));
     const home = refs.map.nodes.find(n=>n.role==="home"); const tech=refs.map.nodes.find(n=>n.role==="tech");
-    if (home) {home.x=375;home.y=25;} if(tech){tech.x=375;tech.y=130;}
-    const purposes=buckets.purpose.filter(n=>n!==home); positionRow(purposes,230);
-    positionRow(buckets.person,330); positionRow(buckets.device,425); positionRow(buckets.service,565);
+    if (home) {home.x=(MAP_WIDTH-NODE_WIDTH)/2;home.y=20;} if(tech){tech.x=(MAP_WIDTH-NODE_WIDTH)/2;tech.y=125;}
+    const sections=[buckets.purpose.filter(n=>n!==home),buckets.person,buckets.device,buckets.service];
+    let y=245;
+    sections.forEach(nodes=>{ if(!nodes.length)return; positionRows(nodes,y); y+=Math.ceil(nodes.length/5)*100+34; });
+    refs.map.viewHeight=Math.max(720,y+20);
     state.dirty=true;
   }
-  function positionRow(nodes,y){ nodes.forEach((n,i)=>{ const count=Math.min(nodes.length,5); const col=i%5; n.x=25+(col*(850/count)); n.y=y+Math.floor(i/5)*78; }); }
+  function positionRows(nodes,startY){
+    const gap=24;
+    for(let start=0;start<nodes.length;start+=5){
+      const row=nodes.slice(start,start+5); const rowWidth=row.length*NODE_WIDTH+(row.length-1)*gap; const left=(MAP_WIDTH-rowWidth)/2;
+      row.forEach((node,col)=>{node.x=left+col*(NODE_WIDTH+gap);node.y=startY+Math.floor(start/5)*100;});
+    }
+  }
 
   $("#fitMap").addEventListener("click",()=>{arrangeMap("v1");renderMap("v1");});
   $("#fitMapV2").addEventListener("click",()=>{arrangeMap("v2");renderMap("v2");});
@@ -463,11 +487,12 @@
   }
 
   function downloadPng() {
-    const source=$("#mapCanvasV2"); const copy=source.cloneNode(true); copy.setAttribute("xmlns",SVG_NS); copy.setAttribute("width","1400");copy.setAttribute("height","1011");
-    const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.edge-label{font-size:11px;fill:#52677b;paint-order:stroke;stroke:#fff;stroke-width:4px}.node-group text{font-size:12px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}`; copy.insertBefore(style,copy.firstChild);
+    const source=$("#mapCanvasV2"); const copy=source.cloneNode(true); const vb=source.viewBox.baseVal; const outputWidth=1600; const outputHeight=Math.round(outputWidth*(vb.height/vb.width)); copy.setAttribute("xmlns",SVG_NS); copy.setAttribute("width",String(outputWidth));copy.setAttribute("height",String(outputHeight));
+    copy.querySelectorAll(".dimmed").forEach(el=>el.classList.remove("dimmed")); copy.querySelectorAll(".edge-label").forEach(el=>el.classList.add("active"));
+    const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.edge-label{font-size:12px;font-weight:700;fill:#3f5367;paint-order:stroke;stroke:#fff;stroke-width:5px}.node-group text{font-size:13px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}`; copy.insertBefore(style,copy.firstChild);
     const bg=document.createElementNS(SVG_NS,"rect");bg.setAttribute("width","100%");bg.setAttribute("height","100%");bg.setAttribute("fill","#f8fbfe");copy.insertBefore(bg,style.nextSibling);
     const xml=new XMLSerializer().serializeToString(copy),svgBlob=new Blob([xml],{type:"image/svg+xml"}),url=URL.createObjectURL(svgBlob),img=new Image();
-    img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=1400;canvas.height=1011;const ctx=canvas.getContext("2d");ctx.fillStyle="#f8fbfe";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);canvas.toBlob(blob=>{const out=URL.createObjectURL(blob),a=document.createElement("a");a.href=out;a.download="qonduit-home-system-map.png";a.click();setTimeout(()=>URL.revokeObjectURL(out),1000);state.downloaded=true;},"image/png");};img.src=url;
+    img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=outputWidth;canvas.height=outputHeight;const ctx=canvas.getContext("2d");ctx.fillStyle="#f8fbfe";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);canvas.toBlob(blob=>{const out=URL.createObjectURL(blob),a=document.createElement("a");a.href=out;a.download="qonduit-home-system-map.png";a.click();setTimeout(()=>URL.revokeObjectURL(out),1000);state.downloaded=true;},"image/png");};img.src=url;
   }
 
   $("#downloadProject").addEventListener("click",downloadProject);
