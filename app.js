@@ -233,10 +233,10 @@
     });
     state.mapV1 = {nodes, edges};
     state.activeMap = "v1";
-    arrangeMap("v1");
-    renderMap("v1");
     state.dirty = true;
     setStep(5);
+    arrangeMap("v1");
+    renderMap("v1");
   }
   $("#buildMap").addEventListener("click", buildStartingMap);
 
@@ -506,6 +506,15 @@
   $("#reflectionVisible").addEventListener("input",()=>state.dirty=true);
   $("#reflectionQuestion").addEventListener("input",()=>state.dirty=true);
   $("#startOver").addEventListener("click",()=>{if(confirm("Clear this work and start again? Nothing can be recovered unless you downloaded it.")){state.dirty=false;location.reload();}});
+
+  let resizeTimer;
+  window.addEventListener("resize",()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer=setTimeout(()=>{
+      if(state.step===5&&state.mapV1)renderMap("v1");
+      if(state.step===6&&state.mapV2&&!$("#version2Area").hidden)renderMap("v2");
+    },120);
+  });
 
   window.addEventListener("beforeunload",e=>{if(state.dirty&&!state.downloaded){e.preventDefault();e.returnValue="";}});
 })();
