@@ -138,7 +138,19 @@ h3 { font-size: 1.05rem; }
 .continue-card h2 { margin-bottom: .35rem; font-size: 1.35rem; }
 .continue-card p { margin: 0; color: var(--muted); }
 .continue-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
-.file-button { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.continue-actions .field-label { flex-basis: 100%; margin: 0; }
+.project-file-input { width: min(100%, 360px); color: var(--muted); font-size: .9rem; }
+.project-file-input::file-selector-button {
+  min-height: 44px;
+  margin-right: .65rem;
+  padding: .65rem .85rem;
+  border: 1px solid #aabac8;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--navy);
+  font-weight: 750;
+  cursor: pointer;
+}
 .file-status { min-height: 1.4rem; margin-top: .45rem !important; font-weight: 700; }
 .file-status.error { color: var(--red); }
 .file-status.success { color: var(--green); }
@@ -385,7 +397,7 @@ textarea { min-height: 94px; resize: vertical; }
   .hero { grid-template-columns: 1fr; }
   .promise { grid-template-columns: 1fr; margin-bottom: .75rem; }
   .continue-card { grid-template-columns: 1fr; }
-  .continue-actions .btn { flex: 1 1 100%; }
+  .continue-actions .btn, .project-file-input { flex: 1 1 100%; }
   .mobile-map-hint {
     display: block;
     margin: 0.9rem 1rem;
