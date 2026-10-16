@@ -751,7 +751,6 @@
     $("#questionExperienceTitle").setAttribute("tabindex","-1");$("#questionExperienceTitle").focus({preventScroll:true});
   }
 
-  $("#chooseProjectFile").addEventListener("click",()=>$("#projectFile").click());
   $("#projectFile").addEventListener("change",async e=>{
     const file=e.target.files?.[0],status=$("#importStatus"),button=$("#beginImportedExperience");
     status.className="file-status";button.hidden=true;
