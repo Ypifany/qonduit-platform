@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Build and revise a truthful map of how technology supports your home.">
   <title>Qonduit | See the System You Already Live In</title>
-  <link rel="stylesheet" href="styles.css?v=20261016-2">
+  <link rel="stylesheet" href="styles.css?v=20261016-3">
 </head>
 <body>
   <a class="skip-link" href="#experience">Skip to the experience</a>
@@ -143,7 +143,12 @@
         <div class="map-heading">
           <p class="eyebrow">Version 1</p>
           <h2 id="step5Title">Make the map tell the truth as you understand it now.</h2>
-          <p>Move anything. Rename it. Add what is missing. Connect pieces that rely on one another. Select a box to emphasize its direct connections and relationship words.</p>
+          <p>Review the starting map Qonduit made from your answers. Use the controls beside the map only when you want to change what it says.</p>
+          <ol class="map-instructions">
+            <li><strong>Add a box:</strong> choose “Add something missing,” describe it, then choose “Add to map.”</li>
+            <li><strong>Show a relationship:</strong> choose two boxes and say how one uses, supports, or relies on the other.</li>
+            <li><strong>Tidy the layout:</strong> “Rearrange boxes” only straightens the map. It does not add or change information.</li>
+          </ol>
           <p class="map-promise"><strong>Your map does not need to match anyone else’s.</strong> It needs to help you explain what you understand and what you still need to investigate.</p>
         </div>
         <p class="mobile-map-hint"><strong>Using a phone?</strong> Swipe left or right to move across the map. Swipe up or down to continue through the page. Tap a box to select it.</p>
@@ -166,9 +171,10 @@
             </div>
             <div class="panel-section">
               <h3>Add to the map</h3>
+              <p>Add another box, or show how two existing boxes are related.</p>
               <div class="compact-grid">
-                <button class="btn btn-soft" id="addNodeBtn" type="button">Add a piece</button>
-                <button class="btn btn-soft" id="addEdgeBtn" type="button">Connect two pieces</button>
+                <button class="btn btn-soft" id="addNodeBtn" type="button">Add something missing</button>
+                <button class="btn btn-soft" id="addEdgeBtn" type="button">Show a relationship</button>
               </div>
             </div>
             <div class="panel-section">
@@ -176,7 +182,7 @@
               <p id="selectedHelp" aria-live="polite">Select a box on the map or use a button in the outline.</p>
               <button class="btn btn-secondary" id="editNodeBtn" type="button" disabled>Edit selected piece</button>
             </div>
-            <details class="panel-section map-outline" id="outlineV1" open>
+            <details class="panel-section map-outline" id="outlineV1">
               <summary>Map outline</summary>
               <p>Each button selects and highlights the matching box in the map.</p>
               <ul class="node-list" id="nodeList"></ul>
@@ -191,8 +197,9 @@
         <div class="map-toolbar">
           <button class="btn btn-secondary" data-back="4">Back to answers</button>
           <div class="actions-right">
-            <button class="btn btn-soft" id="fitMap" type="button">Arrange map</button>
-            <button class="btn btn-primary" id="saveV1" type="button">Save Version 1 and reveal something new</button>
+            <button class="btn btn-soft" id="fitMap" type="button">Rearrange boxes</button>
+            <button class="btn btn-secondary" id="downloadV1" type="button">Download Version 1 image</button>
+            <button class="btn btn-primary" id="saveV1" type="button">Finish Version 1 and reveal something new</button>
           </div>
         </div>
       </section>
@@ -204,7 +211,10 @@
           <p>Qonduit selected a question based on what you included. It is not claiming the example is true for your home. Investigate it and add only what is true.</p>
         </div>
         <div class="reveal" id="revealCard" aria-live="polite"></div>
-        <button class="btn btn-primary" id="reviseMap" type="button">Open my map and revise it</button>
+        <div class="reveal-actions">
+          <button class="btn btn-secondary" id="downloadV1After" type="button">Download Version 1 image</button>
+          <button class="btn btn-primary" id="reviseMap" type="button">Open Version 2</button>
+        </div>
 
         <div id="version2Area" hidden>
           <p class="mobile-map-hint"><strong>Using a phone?</strong> Swipe left or right to move across the map. Swipe up or down to continue through the page. Tap a box to select it.</p>
@@ -219,15 +229,15 @@
               </div>
               <div class="panel-section">
                 <h3>Revise your map</h3>
-                <p>Add only what applies. You may also change an existing relationship or mark something as uncertain.</p>
+                <p>Your selected new information is now on the map. You can move it, edit it, or show another relationship.</p>
                 <p id="selectedHelpV2" aria-live="polite">Select a box on the map or use a button in the outline.</p>
                 <div class="compact-grid">
-                  <button class="btn btn-soft" id="addNodeBtnV2" type="button">Add a piece</button>
-                  <button class="btn btn-soft" id="addEdgeBtnV2" type="button">Connect pieces</button>
+                  <button class="btn btn-soft" id="addNodeBtnV2" type="button">Add something missing</button>
+                  <button class="btn btn-soft" id="addEdgeBtnV2" type="button">Show a relationship</button>
                 </div>
                 <button class="btn btn-secondary" id="editNodeBtnV2" style="margin-top:.55rem" type="button" disabled>Edit selected</button>
               </div>
-              <details class="panel-section map-outline" id="outlineV2" open>
+              <details class="panel-section map-outline" id="outlineV2">
                 <summary>Version 2 outline</summary>
                 <p>Each button selects and highlights the matching box in the map.</p>
                 <ul class="node-list" id="nodeListV2"></ul>
@@ -239,21 +249,22 @@
             </aside>
           </div>
           <div class="map-toolbar" style="border:1px solid var(--line);border-top:0">
-            <button class="btn btn-soft" id="fitMapV2" type="button">Arrange map</button>
-            <button class="btn btn-primary" id="saveV2" type="button">Save Version 2</button>
+            <button class="btn btn-soft" id="fitMapV2" type="button">Rearrange boxes</button>
+            <button class="btn btn-primary" id="saveV2" type="button">Finish Version 2 and show downloads</button>
           </div>
         </div>
 
         <div id="reflectionArea" hidden>
           <h2 style="margin-top:1.7rem">What changed in your picture?</h2>
           <div class="comparison" id="comparison"></div>
-          <div class="field"><label for="reflectionVisible">What became visible in Version 2 that you did not see in Version 1?</label><textarea id="reflectionVisible"></textarea></div>
-          <div class="field"><label for="reflectionQuestion">What question would you ask next before looking at a control?</label><textarea id="reflectionQuestion"></textarea></div>
-          <div class="download-grid">
-            <article class="download-card"><h3>Download the map image</h3><p>A PNG you can view, share, or place in a document.</p><button class="btn btn-primary" id="downloadPng" type="button">Download PNG</button></article>
-            <article class="download-card"><h3>Download the editable project</h3><p>A Qonduit project file containing both versions and your reflection. Open it here later to continue questioning the map.</p><button class="btn btn-primary" id="downloadProject" type="button">Download project file</button></article>
+          <div class="download-grid" id="downloadOptions">
+            <article class="download-card"><h3>Download the Version 2 image</h3><p>A PNG you can view, share, or place in a document.</p><button class="btn btn-primary" id="downloadPng" type="button">Download Version 2 image</button></article>
+            <article class="download-card"><h3>Download the editable project</h3><p>A Qonduit project file containing both versions and your reflection. Open it here later to continue questioning the map.</p><button class="btn btn-primary" id="downloadProject" type="button">Download editable project</button></article>
           </div>
           <p class="privacy-reminder"><strong>Nothing is autosaved.</strong> Download what you want to keep before closing or refreshing this page.</p>
+          <h3 class="reflection-heading">Optional reflection</h3>
+          <div class="field"><label for="reflectionVisible">What became visible in Version 2 that you did not see in Version 1?</label><textarea id="reflectionVisible"></textarea></div>
+          <div class="field"><label for="reflectionQuestion">What question would you ask next before looking at a control?</label><textarea id="reflectionQuestion"></textarea></div>
           <div class="actions"><button class="btn btn-danger" id="startOver" type="button">Clear everything and start over</button><button class="btn btn-primary" id="continueToQuestions" type="button">Continue to Experience 2</button></div>
         </div>
       </section>
@@ -288,7 +299,7 @@
             <div class="question-prompt" id="questionPrompt">Choose a map item to see a useful question.</div>
             <button class="btn btn-primary btn-block" id="addAnnotationBtn" type="button">Attach a question or note</button>
           </div>
-          <details class="panel-section map-outline" id="outlineQ" open>
+          <details class="panel-section map-outline" id="outlineQ">
             <summary>Map outline</summary>
             <p>Selecting a box makes its direct relationships easier to see.</p>
             <ul class="node-list" id="nodeListQ"></ul>
@@ -308,7 +319,7 @@
       <div class="map-toolbar question-toolbar">
         <button class="btn btn-secondary" id="returnToOpening" type="button">Return to opening</button>
         <div class="actions-right">
-          <button class="btn btn-soft" id="fitMapQ" type="button">Arrange map</button>
+          <button class="btn btn-soft" id="fitMapQ" type="button">Rearrange boxes</button>
           <button class="btn btn-primary" id="finishQuestioning" type="button">Finish questioning this map</button>
         </div>
       </div>
@@ -330,21 +341,33 @@
 
   <div class="modal-backdrop" id="nodeModal" role="dialog" aria-modal="true" aria-labelledby="nodeModalTitle">
     <div class="modal">
-      <h2 id="nodeModalTitle">Add a piece</h2>
+      <h2 id="nodeModalTitle">Add something missing</h2>
       <div class="field"><label for="nodeLabel">What do you call it?</label><input id="nodeLabel" type="text" placeholder="Example: work laptop"></div>
       <div class="field"><label for="nodeType">What kind of piece is it?</label><select id="nodeType"><option value="device">Device or equipment</option><option value="person">Person or group</option><option value="service">Outside service</option><option value="purpose">Purpose or activity</option><option value="system">System</option></select></div>
       <div class="field"><label for="nodeCertainty">How sure are you?</label><select id="nodeCertainty"><option value="known">I know this</option><option value="assumed">I am assuming this</option><option value="check">I need to check</option></select></div>
-      <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveNode" type="button">Save piece</button></div>
+      <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveNode" type="button">Add to map</button></div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="edgeModal" role="dialog" aria-modal="true" aria-labelledby="edgeModalTitle">
     <div class="modal">
-      <h2 id="edgeModalTitle">Connect two pieces</h2>
+      <h2 id="edgeModalTitle">Show how two things are related</h2>
+      <p class="modal-help">A relationship explains why a line belongs between two boxes—for example, a laptop <strong>connects through</strong> a router or a household <strong>relies on</strong> electricity.</p>
       <div class="field"><label for="edgeFrom">From</label><select id="edgeFrom"></select></div>
       <div class="field"><label for="edgeTo">To</label><select id="edgeTo"></select></div>
-      <div class="field"><label for="edgeLabel">How are they related?</label><input id="edgeLabel" type="text" placeholder="Example: connects to, uses, supports"></div>
-      <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveEdge" type="button">Save relationship</button></div>
+      <fieldset class="relationship-choices">
+        <legend>Choose the words that make the sentence true</legend>
+        <div class="relationship-choice-grid">
+          <button type="button" data-relationship="relies on">relies on</button>
+          <button type="button" data-relationship="connects through">connects through</button>
+          <button type="button" data-relationship="uses">uses</button>
+          <button type="button" data-relationship="supports">supports</button>
+          <button type="button" data-relationship="makes possible">makes possible</button>
+          <button type="button" data-relationship="provides connection">provides connection</button>
+        </div>
+      </fieldset>
+      <div class="field"><label for="edgeLabel">Or write your own relationship</label><input id="edgeLabel" type="text" placeholder="Example: sends information to"></div>
+      <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveEdge" type="button">Show relationship on map</button></div>
     </div>
   </div>
 
@@ -360,6 +383,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261016-2"></script>
+  <script src="app.js?v=20261016-3"></script>
 </body>
 </html>
