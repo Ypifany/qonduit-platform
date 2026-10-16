@@ -57,13 +57,19 @@
     customDependencies: [],
     mapV1: null,
     mapV2: null,
+    mapQ: null,
     snapshotV1: null,
     snapshotV2: null,
+    annotations: [],
+    importedResponses: null,
+    importedReflection: null,
+    openedFromFile: false,
+    projectCreatedAt: null,
     reveal: null,
     dirty: false,
     downloaded: false,
     activeMap: "v1",
-    selected: { v1: null, v2: null },
+    selected: { v1: null, v2: null, q: null },
     modalMode: "add"
   };
 
@@ -232,6 +238,7 @@
       nodes.push(node); edges.push(makeEdge(tech.id, node.id, "relies on"));
     });
     state.mapV1 = {nodes, edges};
+    state.projectCreatedAt = state.projectCreatedAt || new Date().toISOString();
     state.activeMap = "v1";
     state.dirty = true;
     setStep(5);
@@ -249,15 +256,20 @@
   };
 
   function mapRefs(which) {
-    const v2 = which === "v2";
+    const config = {
+      v1: {map:"mapV1", svg:"#mapCanvas", nodeLayer:"#nodeLayer", edgeLayer:"#edgeLayer", nodeList:"#nodeList", edgeList:"#edgeList", editButton:"#editNodeBtn", help:"#selectedHelp"},
+      v2: {map:"mapV2", svg:"#mapCanvasV2", nodeLayer:"#nodeLayerV2", edgeLayer:"#edgeLayerV2", nodeList:"#nodeListV2", edgeList:"#edgeListV2", editButton:"#editNodeBtnV2", help:"#selectedHelpV2"},
+      q: {map:"mapQ", svg:"#mapCanvasQ", nodeLayer:"#nodeLayerQ", edgeLayer:"#edgeLayerQ", nodeList:"#nodeListQ", edgeList:"#edgeListQ", editButton:null, help:"#selectedHelpQ"}
+    }[which];
     return {
-      map: v2 ? state.mapV2 : state.mapV1,
-      svg: $(v2 ? "#mapCanvasV2" : "#mapCanvas"),
-      nodeLayer: $(v2 ? "#nodeLayerV2" : "#nodeLayer"),
-      edgeLayer: $(v2 ? "#edgeLayerV2" : "#edgeLayer"),
-      nodeList: $(v2 ? "#nodeListV2" : "#nodeList"),
-      edgeList: $(v2 ? "#edgeListV2" : "#edgeList"),
-      editButton: $(v2 ? "#editNodeBtnV2" : "#editNodeBtn")
+      map: state[config.map],
+      svg: $(config.svg),
+      nodeLayer: $(config.nodeLayer),
+      edgeLayer: $(config.edgeLayer),
+      nodeList: $(config.nodeList),
+      edgeList: $(config.edgeList),
+      editButton: config.editButton ? $(config.editButton) : null,
+      help: $(config.help)
     };
   }
 
@@ -293,8 +305,15 @@
       if (!a || !b) return;
       const related = selected && (edge.from === selected || edge.to === selected);
       const dimmed = selected && !related;
-      const line = svgEl("line", {x1:a.x + NODE_WIDTH / 2, y1:a.y + NODE_HEIGHT / 2, x2:b.x + NODE_WIDTH / 2, y2:b.y + NODE_HEIGHT / 2, class:`svg-edge${edge.addedV2 ? " new" : ""}${related ? " active" : ""}${dimmed ? " dimmed" : ""}`});
+      const annotationCount = which === "q" ? state.annotations.filter(item => item.targetType === "edge" && item.targetId === edge.id).length : 0;
+      const line = svgEl("line", {x1:a.x + NODE_WIDTH / 2, y1:a.y + NODE_HEIGHT / 2, x2:b.x + NODE_WIDTH / 2, y2:b.y + NODE_HEIGHT / 2, class:`svg-edge${edge.addedV2 ? " new" : ""}${annotationCount ? " annotated" : ""}${related ? " active" : ""}${dimmed ? " dimmed" : ""}`});
       refs.edgeLayer.append(line);
+      if (annotationCount) {
+        const badgeX=(a.x+b.x+NODE_WIDTH)/2, badgeY=(a.y+b.y+NODE_HEIGHT)/2;
+        const badge=svgEl("circle",{cx:String(badgeX),cy:String(badgeY),r:"13",class:"annotation-badge","aria-hidden":"true"});
+        const badgeText=svgEl("text",{x:String(badgeX),y:String(badgeY+4),class:"annotation-badge-text","text-anchor":"middle","aria-hidden":"true"});
+        badgeText.textContent=String(annotationCount); refs.edgeLayer.append(badge,badgeText);
+      }
       const showRelationshipLabel = showLabelsOnMap && related && !shownRelationshipLabels.has(edge.label);
       if (showRelationshipLabel) {
         shownRelationshipLabels.add(edge.label);
@@ -314,18 +333,27 @@
     refs.map.nodes.forEach(node => {
       const style = typeStyle[node.type] || typeStyle.device;
       const isDimmed = selected && selected !== node.id && !refs.map.edges.some(edge => (edge.from === selected && edge.to === node.id) || (edge.to === selected && edge.from === node.id));
-      const g = svgEl("g", {transform:`translate(${node.x} ${node.y})`, class:`node-group${selected === node.id ? " selected" : ""}${isDimmed ? " dimmed" : ""}${node.addedV2 ? " added-v2" : ""}`, tabindex:"0", role:"button", "aria-label":`${node.label}. ${node.type}. ${node.certainty}. ${node.detail || ""}`, "data-node-id":node.id});
+      const nodeAnnotationCount=which==="q"?state.annotations.filter(item=>item.targetType==="node"&&item.targetId===node.id).length:0;
+      const annotationLabel=nodeAnnotationCount?` ${nodeAnnotationCount} attached ${nodeAnnotationCount===1?"item":"items"}.`:"";
+      const g = svgEl("g", {transform:`translate(${node.x} ${node.y})`, class:`node-group${selected === node.id ? " selected" : ""}${isDimmed ? " dimmed" : ""}${node.addedV2 ? " added-v2" : ""}`, tabindex:"0", role:"button", "aria-label":`${node.label}. ${node.type}. ${node.certainty}. ${node.detail || ""}.${annotationLabel}`, "data-node-id":node.id});
       const rect = svgEl("rect", {width:String(NODE_WIDTH), height:String(NODE_HEIGHT), rx:"13", fill:style.fill, stroke:style.stroke, class:"node-shape"});
       if (node.certainty !== "known") rect.setAttribute("stroke-dasharray", node.certainty === "assumed" ? "7 5" : "3 4");
       const title = svgEl("title"); title.textContent = `${node.label}: ${node.detail || node.type} (${node.certainty})`; g.append(title, rect);
       wrapLabel(node.label, 22).forEach((line, i, arr) => {
         const t = svgEl("text", {x:String(NODE_WIDTH / 2), y:String(36 - (arr.length-1)*9 + i*18), "text-anchor":"middle", style:`fill:${style.text || "#172433"}`}); t.textContent = line; g.append(t);
       });
+      if (which === "q") {
+        if(nodeAnnotationCount){
+          const badge=svgEl("circle",{cx:String(NODE_WIDTH-8),cy:"8",r:"14",class:"annotation-badge","aria-hidden":"true"});
+          const badgeText=svgEl("text",{x:String(NODE_WIDTH-8),y:"12",class:"annotation-badge-text","text-anchor":"middle","aria-hidden":"true"});
+          badgeText.textContent=String(nodeAnnotationCount); g.append(badge,badgeText);
+        }
+      }
       addNodeInteractions(g, node, which);
       refs.nodeLayer.append(g);
     });
     renderOutline(which);
-    refs.editButton.disabled = !selected;
+    if (refs.editButton) refs.editButton.disabled = !selected;
   }
 
   function addNodeInteractions(group, node, which) {
@@ -346,10 +374,18 @@
       node.x = Math.max(0, Math.min(bounds.width - NODE_WIDTH, p.x-offset.x)); node.y = Math.max(0, Math.min(bounds.height - NODE_HEIGHT, p.y-offset.y));
       state.dirty = true; renderMap(which);
     }
-    function stop() { dragging = false; window.removeEventListener("pointermove", move); renderMap(which); }
-    group.addEventListener("dblclick", () => openNodeModal(which, "edit", node.id));
+    function stop() { dragging = false; window.removeEventListener("pointermove", move); renderMap(which); if(which==="q")selectQuestionTarget(`node:${node.id}`); }
+    group.addEventListener("dblclick", () => {
+      if(which==="q") openAnnotationModal(`node:${node.id}`);
+      else openNodeModal(which, "edit", node.id);
+    });
     group.addEventListener("keydown", e => {
-      if (["Enter"," "].includes(e.key)) { e.preventDefault(); state.selected[which] = node.id; renderMap(which); openNodeModal(which,"edit",node.id); return; }
+      if (["Enter"," "].includes(e.key)) {
+        e.preventDefault(); state.selected[which] = node.id; renderMap(which);
+        if (which === "q") selectQuestionTarget(`node:${node.id}`);
+        else openNodeModal(which,"edit",node.id);
+        return;
+      }
       const amount = e.shiftKey ? 20 : 6;
       if (e.key === "ArrowLeft") node.x -= amount;
       else if (e.key === "ArrowRight") node.x += amount;
@@ -383,16 +419,106 @@
     const selected = state.selected[which];
     refs.nodeList.innerHTML = refs.map.nodes.map(n => {
       const status = n.certainty === "known" ? "Known" : n.certainty === "assumed" ? "Assumed" : "Need to check";
-      return `<li class="${selected === n.id ? "is-selected" : ""}"><button class="node-select" type="button" data-select-node="${n.id}" data-map="${which}" aria-pressed="${selected === n.id}"><strong>${esc(n.label)}</strong><small>${esc(status)}</small></button><button class="node-delete" type="button" data-delete-node="${n.id}" data-map="${which}" aria-label="Delete ${esc(n.label)}">×</button></li>`;
+      const count=which==="q"?state.annotations.filter(item=>item.targetType==="node"&&item.targetId===n.id).length:0;
+      const remove=which==="q"?"":`<button class="node-delete" type="button" data-delete-node="${n.id}" data-map="${which}" aria-label="Delete ${esc(n.label)}">×</button>`;
+      return `<li class="${selected === n.id ? "is-selected" : ""}${which==="q"?" question-node-item":""}"><button class="node-select" type="button" data-select-node="${n.id}" data-map="${which}" aria-pressed="${selected === n.id}"><strong>${esc(n.label)}</strong><small>${esc(status)}${count?` · ${count} attached`:""}</small></button>${remove}</li>`;
     }).join("");
     refs.edgeList.innerHTML = refs.map.edges.map(edge => {
       const a=refs.map.nodes.find(n=>n.id===edge.from), b=refs.map.nodes.find(n=>n.id===edge.to);
+      if(which==="q"){
+        const count=state.annotations.filter(item=>item.targetType==="edge"&&item.targetId===edge.id).length;
+        return `<li><span>${esc(a?.label || "Missing")} <strong>${esc(edge.label)}</strong> ${esc(b?.label || "Missing")}${count?` · ${count} attached`:""}</span><button type="button" data-annotate-edge="${edge.id}">Question</button></li>`;
+      }
       return `<li><button type="button" data-delete-edge="${edge.id}" data-map="${which}" aria-label="Delete relationship">×</button>${esc(a?.label || "Missing")} <strong>${esc(edge.label)}</strong> ${esc(b?.label || "Missing")}</li>`;
     }).join("") || "<li>No relationships yet.</li>";
     const selectedNode = refs.map.nodes.find(n => n.id === selected);
     const relationshipWords = [...new Set(refs.map.edges.filter(edge => edge.from === selected || edge.to === selected).map(edge => edge.label))];
-    const help = $(which === "v1" ? "#selectedHelp" : "#selectedHelpV2");
+    const help = refs.help;
     if (help) help.textContent = selectedNode ? `${selectedNode.label} is highlighted. Direct relationships: ${relationshipWords.join(", ") || "none yet"}.` : "Select a box on the map or use a button in the outline.";
+    if(which==="q") renderAnnotations();
+  }
+
+  function questionTargetOptions() {
+    if(!state.mapQ) return "";
+    const nodes=state.mapQ.nodes.map(node=>`<option value="node:${node.id}">Box: ${esc(node.label)}</option>`).join("");
+    const edges=state.mapQ.edges.map(edge=>{
+      const a=state.mapQ.nodes.find(n=>n.id===edge.from),b=state.mapQ.nodes.find(n=>n.id===edge.to);
+      return `<option value="edge:${edge.id}">Relationship: ${esc(a?.label||"Missing")} ${esc(edge.label)} ${esc(b?.label||"Missing")}</option>`;
+    }).join("");
+    return `<option value="">Choose a box or relationship</option><optgroup label="Boxes">${nodes}</optgroup><optgroup label="Relationships">${edges}</optgroup>`;
+  }
+
+  function targetInfo(value) {
+    const [targetType,targetId]=String(value||"").split(":");
+    if(targetType==="node"){
+      const node=state.mapQ?.nodes.find(item=>item.id===targetId);
+      return node?{targetType,targetId,label:node.label,node}:null;
+    }
+    if(targetType==="edge"){
+      const edge=state.mapQ?.edges.find(item=>item.id===targetId);
+      if(!edge)return null;
+      const a=state.mapQ.nodes.find(n=>n.id===edge.from),b=state.mapQ.nodes.find(n=>n.id===edge.to);
+      return {targetType,targetId,label:`${a?.label||"Missing"} ${edge.label} ${b?.label||"Missing"}`,edge};
+    }
+    return null;
+  }
+
+  function promptForTarget(value) {
+    const info=targetInfo(value);
+    if(!info)return "Choose a map item to see a useful question.";
+    if(info.targetType==="edge")return `How do you know that “${info.label}” is true? What evidence supports this relationship?`;
+    if(info.node.certainty==="assumed")return `What are you assuming about ${info.label}, and what would help you verify it?`;
+    if(info.node.certainty==="check")return `What would you need to learn before you could explain ${info.label} with confidence?`;
+    if(info.node.type==="service")return `What does ${info.label} provide, who controls it, and what happens if it is unavailable?`;
+    if(info.node.type==="person")return `How does ${info.label} use or depend on this system? What might the map be missing?`;
+    return `What do you know about ${info.label}, what are you assuming, and what would you like to understand better?`;
+  }
+
+  function promptForAnnotation(value,type) {
+    const info=targetInfo(value);
+    if(!info)return "Choose a map item before writing.";
+    if(type==="assumption")return `What are you currently treating as true about ${info.label} without confirming it?`;
+    if(type==="uncertainty")return `What about ${info.label} do you still need to verify or understand?`;
+    if(type==="evidence")return `What did you observe, read, or confirm that supports what the map says about ${info.label}?`;
+    if(type==="note")return `What discovery or useful detail about ${info.label} should remain with this map?`;
+    return promptForTarget(value);
+  }
+
+  function populateAnnotationTargets(selectedValue="") {
+    const options=questionTargetOptions();
+    $("#annotationTarget").innerHTML=options;
+    $("#annotationModalTarget").innerHTML=options;
+    if(selectedValue){$("#annotationTarget").value=selectedValue;$("#annotationModalTarget").value=selectedValue;}
+    $("#questionPrompt").textContent=promptForTarget($("#annotationTarget").value);
+    $("#annotationSuggestion").textContent=promptForAnnotation($("#annotationModalTarget").value,$("#annotationType").value);
+  }
+
+  function selectQuestionTarget(value) {
+    if(!state.mapQ)return;
+    if(!$("#annotationTarget").options.length)populateAnnotationTargets(value);
+    else $("#annotationTarget").value=value;
+    const info=targetInfo(value);
+    if(info?.targetType==="node")state.selected.q=info.targetId;
+    $("#questionPrompt").textContent=promptForTarget(value);
+  }
+
+  function renderAnnotations() {
+    if(!state.mapQ)return;
+    const typeLabels={question:"Question",assumption:"Assumption",uncertainty:"Need to verify",evidence:"Evidence",note:"Note or discovery"};
+    $("#annotationCount").textContent=`(${state.annotations.length})`;
+    $("#annotationList").innerHTML=state.annotations.length?state.annotations.map(item=>{
+      const info=targetInfo(`${item.targetType}:${item.targetId}`);
+      return `<li><span class="annotation-type">${esc(typeLabels[item.type]||item.type)}</span><strong>${esc(info?.label||"Map item")}</strong><span>${esc(item.text)}</span><button type="button" data-delete-annotation="${item.id}">Remove</button></li>`;
+    }).join(""):"<li class=\"empty-note\">Nothing attached yet.</li>";
+  }
+
+  function openAnnotationModal(targetValue="") {
+    populateAnnotationTargets(targetValue||$("#annotationTarget").value);
+    $("#annotationType").value="question";
+    $("#annotationText").value="";
+    $("#annotationValidation").textContent="";
+    $("#annotationSuggestion").textContent=promptForAnnotation($("#annotationModalTarget").value,$("#annotationType").value);
+    openModal($("#annotationModal"));
   }
 
   document.addEventListener("click", e => {
@@ -401,6 +527,8 @@
     const delEdge = e.target.closest("[data-delete-edge]");
     const panelTop = e.target.closest("[data-panel-top]");
     const panelOutline = e.target.closest("[data-panel-outline]");
+    const annotateEdge = e.target.closest("[data-annotate-edge]");
+    const deleteAnnotation = e.target.closest("[data-delete-annotation]");
     if (panelTop) {
       const panel = document.getElementById(panelTop.dataset.panelTop);
       panel?.scrollTo({top:0,behavior:"auto"});
@@ -418,7 +546,13 @@
       state.selected[select.dataset.map] = select.dataset.selectNode;
       state.activeMap=select.dataset.map;
       renderMap(select.dataset.map);
+      if(select.dataset.map==="q") selectQuestionTarget(`node:${select.dataset.selectNode}`);
       requestAnimationFrame(() => centerNodeInCanvas(select.dataset.map, select.dataset.selectNode));
+    }
+    if(annotateEdge) openAnnotationModal(`edge:${annotateEdge.dataset.annotateEdge}`);
+    if(deleteAnnotation){
+      state.annotations=state.annotations.filter(item=>item.id!==deleteAnnotation.dataset.deleteAnnotation);
+      state.dirty=true;renderMap("q");
     }
     if (delNode) {
       const refs=mapRefs(delNode.dataset.map), nodeId=delNode.dataset.deleteNode;
@@ -449,12 +583,35 @@
 
   $("#fitMap").addEventListener("click",()=>{arrangeMap("v1");renderMap("v1");});
   $("#fitMapV2").addEventListener("click",()=>{arrangeMap("v2");renderMap("v2");});
+  $("#fitMapQ").addEventListener("click",()=>{arrangeMap("q");renderMap("q");});
 
   function openModal(el) { el.classList.add("open"); setTimeout(()=>$("input,select,button",el)?.focus(),30); }
   function closeModals() { $$(".modal-backdrop").forEach(m=>m.classList.remove("open")); }
   $$('[data-close-modal]').forEach(b=>b.addEventListener("click",closeModals));
   $$(".modal-backdrop").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModals();}));
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModals();});
+
+  $("#annotationTarget").addEventListener("change",e=>{
+    const info=targetInfo(e.target.value);
+    if(info?.targetType==="node"){
+      state.selected.q=info.targetId;
+      renderMap("q");
+    } else if(info?.targetType==="edge"){state.selected.q=null;renderMap("q");}
+    $("#questionPrompt").textContent=promptForTarget(e.target.value);
+  });
+  $("#annotationModalTarget").addEventListener("change",e=>$("#annotationSuggestion").textContent=promptForAnnotation(e.target.value,$("#annotationType").value));
+  $("#annotationType").addEventListener("change",e=>$("#annotationSuggestion").textContent=promptForAnnotation($("#annotationModalTarget").value,e.target.value));
+  $("#addAnnotationBtn").addEventListener("click",()=>openAnnotationModal($("#annotationTarget").value));
+  $("#saveAnnotation").addEventListener("click",()=>{
+    const info=targetInfo($("#annotationModalTarget").value),text=$("#annotationText").value.trim();
+    const errors=[];
+    if(!info)errors.push("Choose a box or relationship.");
+    if(!text)errors.push("Write the question, assumption, uncertainty, evidence, or note you want to attach.");
+    $("#annotationValidation").textContent=errors.join(" ");
+    if(errors.length)return;
+    state.annotations.push({id:id("note"),type:$("#annotationType").value,text,targetType:info.targetType,targetId:info.targetId,createdAt:new Date().toISOString()});
+    state.dirty=true;$("#questionValidation").textContent="";closeModals();renderMap("q");selectQuestionTarget(`${info.targetType}:${info.targetId}`);
+  });
 
   function openNodeModal(which, mode, nodeId=null) {
     state.activeMap=which; state.modalMode=mode;
@@ -531,25 +688,95 @@
   });
 
   function downloadBlob(content,type,filename) {
-    const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); state.downloaded=true;
+    const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); state.downloaded=true;state.dirty=false;
   }
 
   function downloadProject() {
-    const project={format:"qonduit-project",version:1,createdAt:new Date().toISOString(),responses:responseData(),reveal:state.reveal,version1:state.snapshotV1,version2:state.snapshotV2||state.mapV2,reflection:{becameVisible:$("#reflectionVisible").value.trim(),nextQuestion:$("#reflectionQuestion").value.trim()}};
+    const currentReflection={becameVisible:$("#reflectionVisible").value.trim(),nextQuestion:$("#reflectionQuestion").value.trim()};
+    const project={
+      format:"qonduit-project",
+      version:2,
+      createdAt:state.projectCreatedAt||new Date().toISOString(),
+      updatedAt:new Date().toISOString(),
+      responses:state.importedResponses||responseData(),
+      reveal:state.reveal,
+      version1:state.snapshotV1||state.mapV1,
+      version2:state.snapshotV2||state.mapV2,
+      questionedMap:state.mapQ,
+      annotations:state.annotations,
+      reflection:state.importedReflection||currentReflection
+    };
     downloadBlob(JSON.stringify(project,null,2),"application/json","qonduit-home-system-project.json");
   }
 
-  function downloadPng() {
-    const source=$("#mapCanvasV2"); const copy=source.cloneNode(true); const vb=source.viewBox.baseVal; const outputWidth=1600; const outputHeight=Math.round(outputWidth*(vb.height/vb.width)); copy.setAttribute("xmlns",SVG_NS); copy.setAttribute("width",String(outputWidth));copy.setAttribute("height",String(outputHeight));
+  function downloadMapPng(selector,filename) {
+    const source=$(selector); const copy=source.cloneNode(true); const vb=source.viewBox.baseVal; const outputWidth=1600; const outputHeight=Math.round(outputWidth*(vb.height/vb.width)); copy.setAttribute("xmlns",SVG_NS); copy.setAttribute("width",String(outputWidth));copy.setAttribute("height",String(outputHeight));
     copy.querySelectorAll(".dimmed").forEach(el=>el.classList.remove("dimmed"));
-    const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.edge-label-bg{fill:#fffdf8;stroke:#c97700;stroke-width:2}.edge-label{font-size:15px;font-weight:700;fill:#563300}.node-group text{font-size:13px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}`; copy.insertBefore(style,copy.firstChild);
+    const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.svg-edge.annotated{stroke:#5f3e96;stroke-width:3}.edge-label-bg{fill:#fffdf8;stroke:#c97700;stroke-width:2}.edge-label{font-size:15px;font-weight:700;fill:#563300}.node-group text{font-size:13px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}.annotation-badge{fill:#042c53;stroke:#fff;stroke-width:3}.annotation-badge-text{fill:#fff;font-size:12px;font-weight:800}`; copy.insertBefore(style,copy.firstChild);
     const bg=document.createElementNS(SVG_NS,"rect");bg.setAttribute("width","100%");bg.setAttribute("height","100%");bg.setAttribute("fill","#f8fbfe");copy.insertBefore(bg,style.nextSibling);
     const xml=new XMLSerializer().serializeToString(copy),svgBlob=new Blob([xml],{type:"image/svg+xml"}),url=URL.createObjectURL(svgBlob),img=new Image();
-    img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=outputWidth;canvas.height=outputHeight;const ctx=canvas.getContext("2d");ctx.fillStyle="#f8fbfe";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);canvas.toBlob(blob=>{const out=URL.createObjectURL(blob),a=document.createElement("a");a.href=out;a.download="qonduit-home-system-map.png";a.click();setTimeout(()=>URL.revokeObjectURL(out),1000);state.downloaded=true;},"image/png");};img.src=url;
+    img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=outputWidth;canvas.height=outputHeight;const ctx=canvas.getContext("2d");ctx.fillStyle="#f8fbfe";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);canvas.toBlob(blob=>{const out=URL.createObjectURL(blob),a=document.createElement("a");a.href=out;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(out),1000);state.downloaded=true;},"image/png");};img.src=url;
   }
 
+  function validMap(map) {
+    if(!map||!Array.isArray(map.nodes)||!Array.isArray(map.edges))return false;
+    if(map.nodes.length>500||map.edges.length>3000)return false;
+    const safeId=/^[A-Za-z0-9_-]{1,120}$/;
+    const ids=new Set(map.nodes.map(node=>node?.id));
+    return map.nodes.every(node=>node&&safeId.test(node.id)&&typeof node.label==="string"&&node.label.length<=300&&Number.isFinite(node.x)&&Math.abs(node.x)<=10000&&Number.isFinite(node.y)&&Math.abs(node.y)<=10000)&&map.edges.every(edge=>edge&&safeId.test(edge.id)&&ids.has(edge.from)&&ids.has(edge.to)&&typeof edge.label==="string"&&edge.label.length<=300);
+  }
+
+  function openImportedProject(project) {
+    if(!project||project.format!=="qonduit-project")throw new Error("This is not a Qonduit project file.");
+    const version1=project.version1,version2=project.version2;
+    if(!validMap(version1)||!validMap(version2))throw new Error("This project does not contain usable Version 1 and Version 2 maps.");
+    state.snapshotV1=clone(version1);state.mapV1=clone(version1);
+    state.snapshotV2=clone(version2);state.mapV2=clone(version2);
+    state.mapQ=clone(validMap(project.questionedMap)?project.questionedMap:version2);
+    const validNodeIds=new Set(state.mapQ.nodes.map(node=>node.id)),validEdgeIds=new Set(state.mapQ.edges.map(edge=>edge.id));
+    state.annotations=Array.isArray(project.annotations)?project.annotations.slice(0,1000).filter(item=>item&&/^[A-Za-z0-9_-]{1,120}$/.test(item.id)&&typeof item.text==="string"&&item.text.length<=5000&&["question","assumption","uncertainty","evidence","note"].includes(item.type)&&((item.targetType==="node"&&validNodeIds.has(item.targetId))||(item.targetType==="edge"&&validEdgeIds.has(item.targetId)))):[];
+    state.importedResponses=project.responses||null;state.importedReflection=project.reflection||null;state.reveal=project.reveal||null;state.projectCreatedAt=project.createdAt||new Date().toISOString();
+    state.selected.q=null;state.dirty=false;state.downloaded=true;state.openedFromFile=true;
+  }
+
+  function startQuestionExperience() {
+    const source=state.mapQ||state.snapshotV2||state.mapV2;
+    if(!validMap(source))return;
+    if(!state.mapQ)state.mapQ=clone(source);
+    state.activeMap="q";
+    $("#experienceOne").hidden=true;$("#continueCard").hidden=true;$("#questionExperience").hidden=false;
+    $("#questionResults").hidden=true;
+    populateAnnotationTargets();renderMap("q");
+    $("#questionExperience").scrollIntoView({behavior:"smooth",block:"start"});
+    $("#questionExperienceTitle").setAttribute("tabindex","-1");$("#questionExperienceTitle").focus({preventScroll:true});
+  }
+
+  $("#chooseProjectFile").addEventListener("click",()=>$("#projectFile").click());
+  $("#projectFile").addEventListener("change",async e=>{
+    const file=e.target.files?.[0],status=$("#importStatus"),button=$("#beginImportedExperience");
+    status.className="file-status";button.hidden=true;
+    if(!file)return;
+    try{
+      if(file.size>5*1024*1024)throw new Error("That file is too large to be a Qonduit project.");
+      const project=JSON.parse(await file.text());openImportedProject(project);
+      status.textContent=`${file.name} is ready. Your map stays in this browser.`;status.classList.add("success");button.hidden=false;
+    }catch(error){status.textContent=error instanceof SyntaxError?"That file is not valid JSON. Choose a Qonduit project file.":error.message;status.classList.add("error");e.target.value="";}
+  });
+
+  $("#beginImportedExperience").addEventListener("click",startQuestionExperience);
+  $("#continueToQuestions").addEventListener("click",()=>{state.openedFromFile=false;if(!state.mapQ){state.mapQ=clone(state.snapshotV2||state.mapV2);state.annotations=[];}startQuestionExperience();});
+  $("#returnToOpening").addEventListener("click",()=>{$("#questionExperience").hidden=true;$("#experienceOne").hidden=state.openedFromFile;$("#continueCard").hidden=false;$("#continueCard").scrollIntoView({behavior:"smooth",block:"start"});});
+  $("#finishQuestioning").addEventListener("click",()=>{
+    if(!state.annotations.length){$("#questionValidation").textContent="Attach at least one question, assumption, uncertainty, piece of evidence, or note before finishing.";$("#mapPanelQ").scrollIntoView({behavior:"smooth",block:"start"});return;}
+    const counts=type=>state.annotations.filter(item=>item.type===type).length;
+    $("#annotationSummary").innerHTML=`<div class="metric"><strong>${state.annotations.length}</strong><span>items attached</span></div><div class="metric"><strong>${counts("question")+counts("uncertainty")}</strong><span>open questions or checks</span></div><div class="metric"><strong>${counts("assumption")+counts("evidence")}</strong><span>assumptions or evidence</span></div>`;
+    $("#questionResults").hidden=false;$("#questionResults").scrollIntoView({behavior:"smooth",block:"start"});
+  });
+
   $("#downloadProject").addEventListener("click",downloadProject);
-  $("#downloadPng").addEventListener("click",downloadPng);
+  $("#downloadPng").addEventListener("click",()=>downloadMapPng("#mapCanvasV2","qonduit-home-system-map.png"));
+  $("#downloadAnnotatedPng").addEventListener("click",()=>downloadMapPng("#mapCanvasQ","qonduit-questioned-system-map.png"));
+  $("#downloadQuestionedProject").addEventListener("click",downloadProject);
   $("#reflectionVisible").addEventListener("input",()=>state.dirty=true);
   $("#reflectionQuestion").addEventListener("input",()=>state.dirty=true);
   $("#startOver").addEventListener("click",()=>{if(confirm("Clear this work and start again? Nothing can be recovered unless you downloaded it.")){state.dirty=false;location.reload();}});
@@ -560,8 +787,9 @@
     resizeTimer=setTimeout(()=>{
       if(state.step===5&&state.mapV1)renderMap("v1");
       if(state.step===6&&state.mapV2&&!$("#version2Area").hidden)renderMap("v2");
+      if(state.mapQ&&!$("#questionExperience").hidden)renderMap("q");
     },120);
   });
 
-  window.addEventListener("beforeunload",e=>{if(state.dirty&&!state.downloaded){e.preventDefault();e.returnValue="";}});
+  window.addEventListener("beforeunload",e=>{if(state.dirty){e.preventDefault();e.returnValue="";}});
 })();
