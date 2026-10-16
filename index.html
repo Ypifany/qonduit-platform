@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Build and revise a truthful map of how technology supports your home.">
   <title>Qonduit | See the System You Already Live In</title>
-  <link rel="stylesheet" href="styles.css?v=20261016-1">
+  <link rel="stylesheet" href="styles.css?v=20261016-2">
 </head>
 <body>
   <a class="skip-link" href="#experience">Skip to the experience</a>
@@ -41,8 +41,8 @@
         <p class="file-status" id="importStatus" role="status" aria-live="polite"></p>
       </div>
       <div class="continue-actions">
-        <button class="btn btn-secondary file-button" id="chooseProjectFile" type="button">Choose project file</button>
-        <input class="sr-only" id="projectFile" type="file" accept=".json,application/json">
+        <label class="field-label" for="projectFile">Qonduit project file</label>
+        <input class="project-file-input" id="projectFile" type="file" accept=".json,application/json">
         <button class="btn btn-primary" id="beginImportedExperience" type="button" hidden>Question this map</button>
       </div>
     </section>
@@ -360,6 +360,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261016-1"></script>
+  <script src="app.js?v=20261016-2"></script>
 </body>
 </html>
