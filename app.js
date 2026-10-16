@@ -616,7 +616,7 @@
   function openNodeModal(which, mode, nodeId=null) {
     state.activeMap=which; state.modalMode=mode;
     const node = nodeId ? mapRefs(which).map.nodes.find(n=>n.id===nodeId) : null;
-    $("#nodeModalTitle").textContent = node ? "Edit this piece" : "Add a piece";
+    $("#nodeModalTitle").textContent = node ? "Edit this box" : "Add something missing";
     $("#nodeLabel").value=node?.label||""; $("#nodeType").value=node?.type||"device"; $("#nodeCertainty").value=node?.certainty||"known";
     $("#nodeModal").dataset.nodeId=nodeId||""; openModal($("#nodeModal"));
   }
@@ -625,8 +625,15 @@
     state.activeMap=which; const refs=mapRefs(which);
     const options=refs.map.nodes.map(n=>`<option value="${n.id}">${esc(n.label)}</option>`).join("");
     $("#edgeFrom").innerHTML=options; $("#edgeTo").innerHTML=options; if(refs.map.nodes[1])$("#edgeTo").value=refs.map.nodes[1].id;
-    $("#edgeLabel").value="relies on"; openModal($("#edgeModal"));
+    $("#edgeLabel").value="";
+    $$('[data-relationship]').forEach(button=>button.setAttribute("aria-pressed","false"));
+    openModal($("#edgeModal"));
   }
+
+  $$('[data-relationship]').forEach(button=>button.addEventListener("click",()=>{
+    $("#edgeLabel").value=button.dataset.relationship;
+    $$('[data-relationship]').forEach(item=>item.setAttribute("aria-pressed",String(item===button)));
+  }));
 
   $("#addNodeBtn").addEventListener("click",()=>openNodeModal("v1","add"));
   $("#addNodeBtnV2").addEventListener("click",()=>openNodeModal("v2","add"));
@@ -650,24 +657,42 @@
 
   function chooseReveal() {
     const data=responseData(), useKeys=data.techUses.map(x=>x.key), deviceKeys=data.devices.map(x=>x.key), depKeys=data.dependencies.map(x=>x.key);
-    if(useKeys.includes("work")||deviceKeys.includes("work-laptop")) return {title:"Trace the work connection",text:"Choose the device you use for work. Check whether it relies on a VPN, employer sign-in, device-management service, company email, or cloud storage that is missing from your map.",prompt:"Add what is true. If none applies, mark the relationship you still need to check."};
-    if(useKeys.includes("school")||depKeys.includes("school-systems")) return {title:"Look behind the school account",text:"Choose one school activity. Check what account, portal, identity service, device, and internet connection must work for that activity to happen.",prompt:"Add the missing piece or relationship that is actually part of your household's use."};
-    if(deviceKeys.includes("connected")||useKeys.includes("smart")||useKeys.includes("health")) return {title:"Follow the connected device",text:"Choose one connected home, health, or exercise device. Check whether it communicates with a company account, mobile app, cloud service, or phone that is missing from your map.",prompt:"Add only what you can support. Mark uncertain connections as “Need to check.”"};
-    if(deviceKeys.includes("game")) return {title:"Look beyond the console",text:"Check whether the game console relies on a platform account, online store, cloud save, subscription, voice service, or multiplayer network that is not shown.",prompt:"Add the relationship that best reflects how it is actually used."};
-    if(useKeys.includes("finance")) return {title:"Trace one money task",text:"Choose one banking, billing, or shopping task. Check what device, sign-in method, phone number, email account, app, and outside service must work together.",prompt:"Add one missing dependency or mark what you need to verify."};
-    if(deviceKeys.includes("tv")||useKeys.includes("entertainment")) return {title:"Follow one stream",text:"Choose one thing your household watches or listens to. Check what device, account, streaming service, internet connection, and payment relationship make it available.",prompt:"Add what is missing from your current picture."};
-    return {title:"Trace one activity from end to end",text:"Choose one important thing your household does with technology. Start with the person doing it and follow every device, connection, account, and outside service needed for it to work.",prompt:"Add one relationship that your first map did not make visible."};
+    if(useKeys.includes("work")||deviceKeys.includes("work-laptop")) return {title:"Look more closely at working from home",text:"Which of these does your work device actually use?",choices:["Work VPN","Employer sign-in","Device-management service","Company email","Work cloud storage"],anchorKey:"work-laptop",anchorLabel:"work device"};
+    if(useKeys.includes("school")||depKeys.includes("school-systems")) return {title:"Look more closely at schoolwork",text:"Which of these is actually needed for a school activity?",choices:["School account","Learning portal","Video class service","School email","Online assignment system"],anchorKey:"school-systems",anchorLabel:"school activity"};
+    if(deviceKeys.includes("connected")||useKeys.includes("smart")||useKeys.includes("health")) return {title:"Look more closely at a connected device",text:"Which of these does the device actually use?",choices:["Device company account","Mobile app","Cloud service","Phone or tablet","Paid subscription"],anchorKey:"connected",anchorLabel:"connected device"};
+    if(deviceKeys.includes("game")) return {title:"Look more closely at the game console",text:"Which of these does the console actually use?",choices:["Platform account","Online store","Cloud save","Game subscription","Voice or multiplayer service"],anchorKey:"game",anchorLabel:"game console"};
+    if(useKeys.includes("finance")) return {title:"Look more closely at one money task",text:"Which of these is actually needed for the task?",choices:["Bank or store account","Sign-in verification","Phone number","Email account","Payment service"],anchorKey:"finance",anchorLabel:"money task"};
+    if(deviceKeys.includes("tv")||useKeys.includes("entertainment")) return {title:"Look more closely at one stream",text:"Which of these is actually needed to watch or listen?",choices:["Streaming account","Streaming service","Internet connection","Payment method","Device company account"],anchorKey:"tv",anchorLabel:"TV or streaming device"};
+    return {title:"Look more closely at one important activity",text:"Which of these is actually needed for it to work?",choices:["A device","Internet connection","An account or sign-in","An outside service","Another person"],anchorKey:null,anchorLabel:"home technology system"};
+  }
+
+  function renderReveal(reveal) {
+    const options=reveal.choices.map((label,index)=>`<label class="reveal-choice"><input type="checkbox" name="revealChoice" value="${esc(label)}"><span>${esc(label)}</span></label>`).join("");
+    $("#revealCard").innerHTML=`<h3>${esc(reveal.title)}</h3><p>${esc(reveal.text)}</p><div class="reveal-choice-area"><fieldset><legend>Select everything that is true. Leave uncertain items unselected.</legend><div class="reveal-choice-grid">${options}</div></fieldset><div class="reveal-custom"><label for="revealOther">Something else that is true</label><input id="revealOther" type="text" placeholder="Add another account, service, device, or person"></div><p class="reveal-where"><strong>Where will these go?</strong> When you continue, Qonduit will add your choices as boxes in Version 2 and show that the ${esc(reveal.anchorLabel)} relies on them. You can edit that relationship if different words are more accurate.</p></div>`;
+  }
+
+  function addRevealChoicesToVersion2() {
+    const labels=$$('input[name="revealChoice"]:checked').map(input=>input.value);
+    const other=$("#revealOther")?.value.trim(); if(other)labels.push(other);
+    if(!labels.length)return;
+    const map=state.mapV2;
+    const anchor=map.nodes.find(node=>node.key===state.reveal.anchorKey)||map.nodes.find(node=>node.role==="tech")||map.nodes[0];
+    labels.forEach(label=>{
+      let node=map.nodes.find(item=>item.label.toLowerCase()===label.toLowerCase());
+      if(!node){node=makeNode(label,"service","New information considered for Version 2","known",350,310,{addedV2:true});map.nodes.push(node);}
+      if(anchor&&!map.edges.some(edge=>edge.from===anchor.id&&edge.to===node.id))map.edges.push(makeEdge(anchor.id,node.id,"relies on",{addedV2:true}));
+    });
   }
 
   $("#saveV1").addEventListener("click",()=>{
     state.snapshotV1=clone(state.mapV1); state.reveal=chooseReveal(); state.mapV2=clone(state.mapV1);
     state.mapV2.nodes.forEach(n=>n.addedV2=false); state.mapV2.edges.forEach(e=>e.addedV2=false);
-    $("#revealCard").innerHTML=`<h3>${esc(state.reveal.title)}</h3><p>${esc(state.reveal.text)}</p><p><strong>${esc(state.reveal.prompt)}</strong></p>`;
+    renderReveal(state.reveal);
     state.dirty=true; setStep(6);
   });
 
   $("#reviseMap").addEventListener("click",()=>{
-    $("#version2Area").hidden=false; $("#reviseMap").hidden=true; state.activeMap="v2"; arrangeMap("v2"); renderMap("v2");
+    addRevealChoicesToVersion2(); $("#version2Area").hidden=false; $("#reviseMap").hidden=true; state.activeMap="v2"; arrangeMap("v2"); renderMap("v2");
   });
 
   function diffMaps(a,b) {
@@ -684,7 +709,7 @@
       <div class="metric"><strong>${diff.added.length}</strong><span>pieces added</span></div>
       <div class="metric"><strong>${diff.changed.length}</strong><span>pieces revised</span></div>
       <div class="metric"><strong>${diff.edgeDelta>=0?"+":""}${diff.edgeDelta}</strong><span>change in relationships</span></div>`;
-    $("#reflectionArea").hidden=false; $("#saveV2").disabled=true; state.dirty=true; $("#reflectionArea").scrollIntoView({behavior:"smooth"});
+    $("#reflectionArea").hidden=false; $("#saveV2").disabled=true; state.dirty=true; $("#downloadOptions").scrollIntoView({behavior:"smooth",block:"start"});
   });
 
   function downloadBlob(content,type,filename) {
@@ -773,6 +798,8 @@
   });
 
   $("#downloadProject").addEventListener("click",downloadProject);
+  $("#downloadV1").addEventListener("click",()=>downloadMapPng("#mapCanvas","qonduit-home-system-map-version-1.png"));
+  $("#downloadV1After").addEventListener("click",()=>downloadMapPng("#mapCanvas","qonduit-home-system-map-version-1.png"));
   $("#downloadPng").addEventListener("click",()=>downloadMapPng("#mapCanvasV2","qonduit-home-system-map.png"));
   $("#downloadAnnotatedPng").addEventListener("click",()=>downloadMapPng("#mapCanvasQ","qonduit-questioned-system-map.png"));
   $("#downloadQuestionedProject").addEventListener("click",downloadProject);
