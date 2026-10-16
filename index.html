@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Build and revise a truthful map of how technology supports your home.">
   <title>Qonduit | See the System You Already Live In</title>
-  <link rel="stylesheet" href="styles.css?v=20261015-7">
+  <link rel="stylesheet" href="styles.css?v=20261016-1">
 </head>
 <body>
   <a class="skip-link" href="#experience">Skip to the experience</a>
@@ -27,8 +27,27 @@
     </aside>
   </section>
 
+  <section class="promise" aria-label="Qonduit promise">
+    <strong>There is no single correct system diagram.</strong>
+    <span>Your job is to create a representation that helps you explain what the system is, why it exists, how its pieces relate, and what you still need to understand.</span>
+  </section>
+
   <main class="page-shell" id="experience">
-    <section class="experience" aria-label="Home system mapping experience">
+    <section class="continue-card" id="continueCard" aria-labelledby="continueTitle">
+      <div>
+        <p class="eyebrow">Returning to Qonduit?</p>
+        <h2 id="continueTitle">Continue a saved map</h2>
+        <p>Choose a Qonduit project file you previously downloaded. It is opened only in this browser and is not uploaded or stored.</p>
+        <p class="file-status" id="importStatus" role="status" aria-live="polite"></p>
+      </div>
+      <div class="continue-actions">
+        <button class="btn btn-secondary file-button" id="chooseProjectFile" type="button">Choose project file</button>
+        <input class="sr-only" id="projectFile" type="file" accept=".json,application/json">
+        <button class="btn btn-primary" id="beginImportedExperience" type="button" hidden>Question this map</button>
+      </div>
+    </section>
+
+    <section class="experience" id="experienceOne" aria-label="Home system mapping experience">
       <div class="progress-wrap">
         <div class="progress-copy"><span id="stepLabel">Step 1 of 6</span><span id="stepName">Your home</span></div>
         <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
@@ -125,6 +144,7 @@
           <p class="eyebrow">Version 1</p>
           <h2 id="step5Title">Make the map tell the truth as you understand it now.</h2>
           <p>Move anything. Rename it. Add what is missing. Connect pieces that rely on one another. Select a box to emphasize its direct connections and relationship words.</p>
+          <p class="map-promise"><strong>Your map does not need to match anyone else’s.</strong> It needs to help you explain what you understand and what you still need to investigate.</p>
         </div>
         <p class="mobile-map-hint"><strong>Using a phone?</strong> Swipe left or right to move across the map. Swipe up or down to continue through the page. Tap a box to select it.</p>
         <div class="workspace">
@@ -231,12 +251,78 @@
           <div class="field"><label for="reflectionQuestion">What question would you ask next before looking at a control?</label><textarea id="reflectionQuestion"></textarea></div>
           <div class="download-grid">
             <article class="download-card"><h3>Download the map image</h3><p>A PNG you can view, share, or place in a document.</p><button class="btn btn-primary" id="downloadPng" type="button">Download PNG</button></article>
-            <article class="download-card"><h3>Download the editable project</h3><p>A Qonduit JSON file containing both versions and your reflection. Import support can be added later.</p><button class="btn btn-primary" id="downloadProject" type="button">Download project file</button></article>
+            <article class="download-card"><h3>Download the editable project</h3><p>A Qonduit project file containing both versions and your reflection. Open it here later to continue questioning the map.</p><button class="btn btn-primary" id="downloadProject" type="button">Download project file</button></article>
           </div>
           <p class="privacy-reminder"><strong>Nothing is autosaved.</strong> Download what you want to keep before closing or refreshing this page.</p>
-          <div class="actions"><button class="btn btn-danger" id="startOver" type="button">Clear everything and start over</button></div>
+          <div class="actions"><button class="btn btn-danger" id="startOver" type="button">Clear everything and start over</button><button class="btn btn-primary" id="continueToQuestions" type="button">Continue to Experience 2</button></div>
         </div>
       </section>
+    </section>
+
+    <section class="experience question-experience" id="questionExperience" aria-labelledby="questionExperienceTitle" hidden>
+      <div class="experience-two-heading">
+        <p class="eyebrow">Experience 2 · Question the picture</p>
+        <h2 id="questionExperienceTitle">What does this map claim—and how do you know?</h2>
+        <p>Select a box or relationship. Attach a question, assumption, uncertainty, evidence, or note. You are not trying to find the correct diagram. You are making your current understanding visible.</p>
+      </div>
+
+      <p class="mobile-map-hint"><strong>Using a phone?</strong> Swipe left or right to move across the map. Swipe up or down to continue through the page. Use the controls below the map to add questions and notes.</p>
+      <div class="workspace question-workspace">
+        <div class="canvas-wrap">
+          <svg id="mapCanvasQ" viewBox="0 0 900 760" role="img" aria-labelledby="questionMapTitle questionMapDesc">
+            <title id="questionMapTitle">Home technology map with attached questions and notes</title>
+            <desc id="questionMapDesc">A copy of the learner's Version 2 map. Numbered badges show where questions, assumptions, uncertainties, evidence, or notes have been attached.</desc>
+            <g id="edgeLayerQ"></g><g id="nodeLayerQ"></g>
+          </svg>
+        </div>
+        <aside class="map-panel" id="mapPanelQ" aria-label="Questioning controls">
+          <div class="panel-jump" aria-label="Questioning panel sections">
+            <button class="btn btn-soft" type="button" data-panel-top="mapPanelQ">Question controls</button>
+            <button class="btn btn-secondary" type="button" data-panel-outline="outlineQ" aria-controls="outlineQ">Map outline</button>
+          </div>
+          <div class="panel-section">
+            <h3>Choose what to question</h3>
+            <p id="selectedHelpQ" aria-live="polite">Select a box on the map or choose any item below.</p>
+            <label class="field-label" for="annotationTarget">Map item</label>
+            <select id="annotationTarget"></select>
+            <div class="question-prompt" id="questionPrompt">Choose a map item to see a useful question.</div>
+            <button class="btn btn-primary btn-block" id="addAnnotationBtn" type="button">Attach a question or note</button>
+          </div>
+          <details class="panel-section map-outline" id="outlineQ" open>
+            <summary>Map outline</summary>
+            <p>Selecting a box makes its direct relationships easier to see.</p>
+            <ul class="node-list" id="nodeListQ"></ul>
+          </details>
+          <details class="panel-section map-outline" open>
+            <summary>Relationships</summary>
+            <p>Use “Question” to attach something directly to a relationship.</p>
+            <ul class="edge-list question-edge-list" id="edgeListQ"></ul>
+          </details>
+          <details class="panel-section map-outline" open>
+            <summary>Attached questions and notes <span id="annotationCount">(0)</span></summary>
+            <ul class="annotation-list" id="annotationList"><li class="empty-note">Nothing attached yet.</li></ul>
+          </details>
+        </aside>
+      </div>
+      <div class="validation question-validation" id="questionValidation" role="alert"></div>
+      <div class="map-toolbar question-toolbar">
+        <button class="btn btn-secondary" id="returnToOpening" type="button">Return to opening</button>
+        <div class="actions-right">
+          <button class="btn btn-soft" id="fitMapQ" type="button">Arrange map</button>
+          <button class="btn btn-primary" id="finishQuestioning" type="button">Finish questioning this map</button>
+        </div>
+      </div>
+
+      <div class="question-results" id="questionResults" hidden>
+        <p class="eyebrow">Your work</p>
+        <h2>This map now shows what you understand and what remains open.</h2>
+        <div class="comparison" id="annotationSummary"></div>
+        <div class="download-grid">
+          <article class="download-card"><h3>Download the annotated map</h3><p>A PNG with numbered markers showing where you attached thinking.</p><button class="btn btn-primary" id="downloadAnnotatedPng" type="button">Download annotated map</button></article>
+          <article class="download-card"><h3>Keep the living project</h3><p>A Qonduit project file containing the maps, reflections, questions, assumptions, uncertainties, evidence, and notes.</p><button class="btn btn-primary" id="downloadQuestionedProject" type="button">Download updated project</button></article>
+        </div>
+        <p class="privacy-reminder"><strong>Nothing is autosaved.</strong> Download the updated project before leaving if you want to continue later.</p>
+      </div>
     </section>
   </main>
 
@@ -262,6 +348,18 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261015-7"></script>
+  <div class="modal-backdrop" id="annotationModal" role="dialog" aria-modal="true" aria-labelledby="annotationModalTitle">
+    <div class="modal">
+      <h2 id="annotationModalTitle">Attach thinking to the map</h2>
+      <div class="field"><label for="annotationModalTarget">Attach it to</label><select id="annotationModalTarget"></select></div>
+      <div class="field"><label for="annotationType">What are you attaching?</label><select id="annotationType"><option value="question">Question</option><option value="assumption">Assumption</option><option value="uncertainty">Something I need to verify</option><option value="evidence">Evidence</option><option value="note">Note or discovery</option></select></div>
+      <div class="question-prompt" id="annotationSuggestion"></div>
+      <div class="field"><label for="annotationText">Write it in your own words</label><textarea id="annotationText" placeholder="What do you want to remember, question, or verify?"></textarea></div>
+      <div class="validation" id="annotationValidation" role="alert"></div>
+      <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveAnnotation" type="button">Attach to map</button></div>
+    </div>
+  </div>
+
+  <script src="app.js?v=20261016-1"></script>
 </body>
 </html>
