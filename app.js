@@ -70,6 +70,8 @@
     downloaded: false,
     activeMap: "v1",
     selected: { v1: null, v2: null, q: null },
+    moveMode: { v1: false, v2: false, q: false },
+    lastFocused: null,
     modalMode: "add"
   };
 
@@ -96,6 +98,22 @@
   renderChoiceGroup("peopleChoices", "people", "people");
   renderChoiceGroup("deviceChoices", "devices", "device");
   renderChoiceGroup("dependencyChoices", "dependencies", "dependency");
+
+  function setJourneyStage(stage) {
+    $$('[data-journey]').forEach(item=>item.classList.toggle("is-current",item.dataset.journey===stage));
+  }
+  setJourneyStage("build");
+
+  $("#startExperience").addEventListener("click",()=>{
+    $("#experienceOne").scrollIntoView({behavior:"smooth",block:"start"});
+    $("#step1Title").setAttribute("tabindex","-1");
+    $("#step1Title").focus({preventScroll:true});
+  });
+  $("#openSavedProject").addEventListener("click",()=>{
+    $("#continueCard").open=true;
+    $("#continueCard").scrollIntoView({behavior:"smooth",block:"center"});
+    $("#projectFile").focus({preventScroll:true});
+  });
 
   function checked(name) { return $$(`input[name="${name}"]:checked`).map(i => i.value); }
   function labelFor(group, value) { return choices[group].find(x => x[0] === value)?.[1] || value; }
@@ -164,12 +182,15 @@
   function setStep(number) {
     state.step = number;
     $$(".step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === number));
-    $("#stepLabel").textContent = `Step ${number} of 6`;
+    $("#stepLabel").textContent = `Home map · Step ${number} of 6`;
     $("#stepName").textContent = stepNames[number - 1];
     $("#progressBar").style.width = `${number / 6 * 100}%`;
     $("#experience").scrollIntoView({behavior: "smooth", block: "start"});
     const title = $(`.step[data-step="${number}"] h2`);
     if (title) title.setAttribute("tabindex", "-1"), title.focus({preventScroll: true});
+    if(number<=4)setJourneyStage("build");
+    else if(number===5)setJourneyStage("notice");
+    else setJourneyStage("discover");
   }
 
   function validateStep(step) {
@@ -240,6 +261,7 @@
     state.mapV1 = {nodes, edges};
     state.projectCreatedAt = state.projectCreatedAt || new Date().toISOString();
     state.activeMap = "v1";
+    state.selected.v1 = tech.id;
     state.dirty = true;
     setStep(5);
     arrangeMap("v1");
@@ -298,7 +320,8 @@
     refs.edgeLayer.innerHTML = ""; refs.nodeLayer.innerHTML = "";
     const selected = state.selected[which];
     const relatedEdges = selected ? refs.map.edges.filter(edge => edge.from === selected || edge.to === selected) : [];
-    const showLabelsOnMap = relatedEdges.length > 0 && relatedEdges.length <= 8;
+    const relatedRelationshipWords = new Set(relatedEdges.map(edge=>edge.label));
+    const showLabelsOnMap = relatedEdges.length > 0 && relatedRelationshipWords.size <= 6;
     const shownRelationshipLabels = new Set();
     refs.map.edges.forEach(edge => {
       const a = refs.map.nodes.find(n => n.id === edge.from); const b = refs.map.nodes.find(n => n.id === edge.to);
@@ -359,13 +382,20 @@
   function addNodeInteractions(group, node, which) {
     let dragging = false; let offset = {x:0,y:0};
     group.addEventListener("pointerdown", e => {
-      e.preventDefault();
       state.selected[which] = node.id; state.activeMap = which;
+      const touchLike=e.pointerType==="touch"||e.pointerType==="pen"||window.matchMedia("(max-width: 760px)").matches;
+      if(touchLike&&!state.moveMode[which])return;
+      e.preventDefault();
       dragging = true;
       const p = clientToSvg(e, mapRefs(which).svg); offset = {x:p.x-node.x, y:p.y-node.y};
       group.classList.add("selected");
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", stop, {once:true});
+    });
+    group.addEventListener("click",()=>{
+      if(dragging)return;
+      state.selected[which]=node.id;state.activeMap=which;renderMap(which);
+      if(which==="q")selectQuestionTarget(`node:${node.id}`);
     });
     function move(e) {
       if (!dragging) return;
@@ -531,14 +561,16 @@
     const deleteAnnotation = e.target.closest("[data-delete-annotation]");
     if (panelTop) {
       const panel = document.getElementById(panelTop.dataset.panelTop);
-      panel?.scrollTo({top:0,behavior:"auto"});
+      if(window.matchMedia("(max-width: 760px)").matches)panel?.scrollIntoView({behavior:"smooth",block:"start"});
+      else panel?.scrollTo({top:0,behavior:"auto"});
     }
     if (panelOutline) {
       const outline = document.getElementById(panelOutline.dataset.panelOutline);
       if (outline) {
         outline.open = true;
         const panel = outline.closest(".map-panel");
-        panel?.scrollTo({top:Math.max(0, outline.offsetTop - 64), behavior:"auto"});
+        if(window.matchMedia("(max-width: 760px)").matches)outline.scrollIntoView({behavior:"smooth",block:"start"});
+        else panel?.scrollTo({top:Math.max(0, outline.offsetTop - 64), behavior:"auto"});
         outline.querySelector("summary")?.focus({preventScroll:true});
       }
     }
@@ -551,15 +583,27 @@
     }
     if(annotateEdge) openAnnotationModal(`edge:${annotateEdge.dataset.annotateEdge}`);
     if(deleteAnnotation){
-      state.annotations=state.annotations.filter(item=>item.id!==deleteAnnotation.dataset.deleteAnnotation);
-      state.dirty=true;renderMap("q");
+      const index=state.annotations.findIndex(item=>item.id===deleteAnnotation.dataset.deleteAnnotation);
+      const removed=state.annotations[index];
+      state.annotations.splice(index,1);state.dirty=true;renderMap("q");
+      showUndo("Question or note removed.",()=>{state.annotations.splice(index,0,removed);renderMap("q");});
     }
     if (delNode) {
       const refs=mapRefs(delNode.dataset.map), nodeId=delNode.dataset.deleteNode;
-      refs.map.nodes=refs.map.nodes.filter(n=>n.id!==nodeId); refs.map.edges=refs.map.edges.filter(x=>x.from!==nodeId&&x.to!==nodeId); state.selected[delNode.dataset.map]=null; state.dirty=true; renderMap(delNode.dataset.map);
+      const nodeIndex=refs.map.nodes.findIndex(n=>n.id===nodeId),removedNode=refs.map.nodes[nodeIndex];
+      const removedEdges=refs.map.edges.filter(x=>x.from===nodeId||x.to===nodeId);
+      refs.map.nodes.splice(nodeIndex,1);refs.map.edges=refs.map.edges.filter(x=>x.from!==nodeId&&x.to!==nodeId);state.selected[delNode.dataset.map]=null;state.dirty=true;renderMap(delNode.dataset.map);
+      showUndo(`${removedNode.label} and its relationships were removed.`,()=>{refs.map.nodes.splice(nodeIndex,0,removedNode);refs.map.edges.push(...removedEdges);renderMap(delNode.dataset.map);});
     }
-    if (delEdge) { const refs=mapRefs(delEdge.dataset.map); refs.map.edges=refs.map.edges.filter(x=>x.id!==delEdge.dataset.deleteEdge); state.dirty=true; renderMap(delEdge.dataset.map); }
+    if (delEdge) { const refs=mapRefs(delEdge.dataset.map),edgeIndex=refs.map.edges.findIndex(x=>x.id===delEdge.dataset.deleteEdge),removedEdge=refs.map.edges[edgeIndex];refs.map.edges.splice(edgeIndex,1);state.dirty=true;renderMap(delEdge.dataset.map);showUndo("Relationship removed.",()=>{refs.map.edges.splice(edgeIndex,0,removedEdge);renderMap(delEdge.dataset.map);}); }
   });
+
+  $$('[data-move-mode]').forEach(button=>button.addEventListener("click",()=>{
+    const which=button.dataset.moveMode;state.moveMode[which]=!state.moveMode[which];
+    button.setAttribute("aria-pressed",String(state.moveMode[which]));
+    button.textContent=`Move boxes: ${state.moveMode[which]?"on":"off"}`;
+    showStatus(state.moveMode[which]?"Move boxes is on. Drag a box to move it.":"Move boxes is off. You can scroll the page normally.");
+  }));
 
   function arrangeMap(which) {
     const refs = mapRefs(which); if (!refs.map) return;
@@ -585,11 +629,20 @@
   $("#fitMapV2").addEventListener("click",()=>{arrangeMap("v2");renderMap("v2");});
   $("#fitMapQ").addEventListener("click",()=>{arrangeMap("q");renderMap("q");});
 
-  function openModal(el) { el.classList.add("open"); setTimeout(()=>$("input,select,button",el)?.focus(),30); }
-  function closeModals() { $$(".modal-backdrop").forEach(m=>m.classList.remove("open")); }
+  function focusableIn(el){return $$('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])',el).filter(item=>item.offsetParent!==null);}
+  function openModal(el) { state.lastFocused=document.activeElement;el.classList.add("open");setTimeout(()=>focusableIn(el)[0]?.focus(),30); }
+  function closeModals() { const hadOpen=$$(".modal-backdrop.open").length>0; $$(".modal-backdrop").forEach(m=>m.classList.remove("open"));if(hadOpen&&state.lastFocused instanceof HTMLElement)state.lastFocused.focus(); }
   $$('[data-close-modal]').forEach(b=>b.addEventListener("click",closeModals));
   $$(".modal-backdrop").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModals();}));
-  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModals();});
+  document.addEventListener("keydown",e=>{
+    const modal=$(".modal-backdrop.open");
+    if(e.key==="Escape"&&modal){e.preventDefault();closeModals();return;}
+    if(e.key!=="Tab"||!modal)return;
+    const items=focusableIn(modal);if(!items.length)return;
+    const first=items[0],last=items.at(-1);
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
 
   $("#annotationTarget").addEventListener("change",e=>{
     const info=targetInfo(e.target.value);
@@ -618,6 +671,7 @@
     const node = nodeId ? mapRefs(which).map.nodes.find(n=>n.id===nodeId) : null;
     $("#nodeModalTitle").textContent = node ? "Edit this box" : "Add something missing";
     $("#nodeLabel").value=node?.label||""; $("#nodeType").value=node?.type||"device"; $("#nodeCertainty").value=node?.certainty||"known";
+    $("#nodeValidation").textContent="";
     $("#nodeModal").dataset.nodeId=nodeId||""; openModal($("#nodeModal"));
   }
 
@@ -626,6 +680,7 @@
     const options=refs.map.nodes.map(n=>`<option value="${n.id}">${esc(n.label)}</option>`).join("");
     $("#edgeFrom").innerHTML=options; $("#edgeTo").innerHTML=options; if(refs.map.nodes[1])$("#edgeTo").value=refs.map.nodes[1].id;
     $("#edgeLabel").value="";
+    $("#edgeValidation").textContent="";
     $$('[data-relationship]').forEach(button=>button.setAttribute("aria-pressed","false"));
     openModal($("#edgeModal"));
   }
@@ -643,7 +698,8 @@
   $("#addEdgeBtnV2").addEventListener("click",()=>openEdgeModal("v2"));
 
   $("#saveNode").addEventListener("click",()=>{
-    const label=$("#nodeLabel").value.trim(); if(!label){$("#nodeLabel").focus();return;}
+    const label=$("#nodeLabel").value.trim();
+    if(!label){$("#nodeValidation").textContent="Name what you want to add to the map.";$("#nodeLabel").focus();return;}
     const refs=mapRefs(state.activeMap), nodeId=$("#nodeModal").dataset.nodeId;
     if(state.modalMode==="edit"&&nodeId){ const n=refs.map.nodes.find(x=>x.id===nodeId); if(n){n.label=label;n.type=$("#nodeType").value;n.certainty=$("#nodeCertainty").value;} }
     else { refs.map.nodes.push(makeNode(label,$("#nodeType").value,"Added by the learner",$("#nodeCertainty").value,350,310,{addedV2:state.activeMap==="v2"})); }
@@ -651,7 +707,12 @@
   });
 
   $("#saveEdge").addEventListener("click",()=>{
-    const from=$("#edgeFrom").value,to=$("#edgeTo").value,label=$("#edgeLabel").value.trim()||"relates to"; if(from===to)return;
+    const from=$("#edgeFrom").value,to=$("#edgeTo").value,label=$("#edgeLabel").value.trim();
+    const errors=[];
+    if(from===to)errors.push("Choose two different boxes.");
+    if(!label)errors.push("Choose or write how the boxes are related.");
+    $("#edgeValidation").textContent=errors.join(" ");
+    if(errors.length)return;
     const refs=mapRefs(state.activeMap); refs.map.edges.push(makeEdge(from,to,label,{addedV2:state.activeMap==="v2"})); state.dirty=true; closeModals(); renderMap(state.activeMap);
   });
 
@@ -668,7 +729,7 @@
 
   function renderReveal(reveal) {
     const options=reveal.choices.map((label,index)=>`<label class="reveal-choice"><input type="checkbox" name="revealChoice" value="${esc(label)}"><span>${esc(label)}</span></label>`).join("");
-    $("#revealCard").innerHTML=`<h3>${esc(reveal.title)}</h3><p>${esc(reveal.text)}</p><div class="reveal-choice-area"><fieldset><legend>Select everything that is true. Leave uncertain items unselected.</legend><div class="reveal-choice-grid">${options}</div></fieldset><div class="reveal-custom"><label for="revealOther">Something else that is true</label><input id="revealOther" type="text" placeholder="Add another account, service, device, or person"></div><p class="reveal-where"><strong>Where will these go?</strong> When you continue, Qonduit will add your choices as boxes in Version 2 and show that the ${esc(reveal.anchorLabel)} relies on them. You can edit that relationship if different words are more accurate.</p></div>`;
+    $("#revealCard").innerHTML=`<h3>${esc(reveal.title)}</h3><p>${esc(reveal.text)}</p><div class="reveal-choice-area"><fieldset><legend>Select everything that is true. Leave uncertain items unselected.</legend><div class="reveal-choice-grid">${options}</div></fieldset><div class="reveal-custom"><label for="revealOther">Something else that is true</label><input id="revealOther" type="text" placeholder="Add another account, service, device, or person"></div><p class="reveal-where"><strong>Where will these go?</strong> When you continue, Qonduit will add your choices as boxes in Version 2 and show that the ${esc(reveal.anchorLabel)} relies on them. You can edit that relationship if different words are more accurate. If none are true, open Version 2 without adding anything.</p></div>`;
   }
 
   function addRevealChoicesToVersion2() {
@@ -692,7 +753,7 @@
   });
 
   $("#reviseMap").addEventListener("click",()=>{
-    addRevealChoicesToVersion2(); $("#version2Area").hidden=false; $("#reviseMap").hidden=true; state.activeMap="v2"; arrangeMap("v2"); renderMap("v2");
+    addRevealChoicesToVersion2(); $("#version2Area").hidden=false; $("#reviseMap").hidden=true; state.activeMap="v2";state.selected.v2=state.mapV2.nodes.find(node=>node.role==="tech")?.id||null;setJourneyStage("revise");arrangeMap("v2");renderMap("v2");
   });
 
   function diffMaps(a,b) {
@@ -712,8 +773,19 @@
     $("#reflectionArea").hidden=false; $("#saveV2").disabled=true; state.dirty=true; $("#downloadOptions").scrollIntoView({behavior:"smooth",block:"start"});
   });
 
-  function downloadBlob(content,type,filename) {
+  let toastTimer=null,undoCallback=null;
+  function showToast(message,undo=null){
+    clearTimeout(toastTimer);undoCallback=undo;$("#undoMessage").textContent=message;$("#undoAction").hidden=!undo;$("#undoToast").hidden=false;
+    toastTimer=setTimeout(()=>{$("#undoToast").hidden=true;undoCallback=null;},undo?7000:4000);
+  }
+  function showUndo(message,callback){showToast(message,callback);}
+  function showStatus(message){showToast(message);}
+  $("#undoAction").addEventListener("click",()=>{if(undoCallback)undoCallback();showStatus("Change restored.");});
+  $("#undoDismiss").addEventListener("click",()=>{clearTimeout(toastTimer);$("#undoToast").hidden=true;undoCallback=null;});
+
+  function downloadBlob(content,type,filename,message="Download started.") {
     const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); state.downloaded=true;state.dirty=false;
+    showStatus(message);
   }
 
   function downloadProject() {
@@ -731,16 +803,18 @@
       annotations:state.annotations,
       reflection:state.importedReflection||currentReflection
     };
-    downloadBlob(JSON.stringify(project,null,2),"application/json","qonduit-home-system-project.json");
+    downloadBlob(JSON.stringify(project,null,2),"application/json","qonduit-home-system-project.json","Editable Qonduit project download started.");
   }
 
-  function downloadMapPng(selector,filename) {
+  function downloadMapPng(selector,filename,message="Map image download started.") {
     const source=$(selector); const copy=source.cloneNode(true); const vb=source.viewBox.baseVal; const outputWidth=1600; const outputHeight=Math.round(outputWidth*(vb.height/vb.width)); copy.setAttribute("xmlns",SVG_NS); copy.setAttribute("width",String(outputWidth));copy.setAttribute("height",String(outputHeight));
     copy.querySelectorAll(".dimmed").forEach(el=>el.classList.remove("dimmed"));
     const style=document.createElementNS(SVG_NS,"style"); style.textContent=`text{font-family:Arial,sans-serif}.svg-edge{stroke:#7d91a5;stroke-width:2}.svg-edge.new{stroke:#9a5b08;stroke-dasharray:7 5;stroke-width:3}.svg-edge.annotated{stroke:#5f3e96;stroke-width:3}.edge-label-bg{fill:#fffdf8;stroke:#c97700;stroke-width:2}.edge-label{font-size:15px;font-weight:700;fill:#563300}.node-group text{font-size:13px;font-weight:700;fill:#172433}.node-shape{stroke-width:2}.annotation-badge{fill:#042c53;stroke:#fff;stroke-width:3}.annotation-badge-text{fill:#fff;font-size:12px;font-weight:800}`; copy.insertBefore(style,copy.firstChild);
     const bg=document.createElementNS(SVG_NS,"rect");bg.setAttribute("width","100%");bg.setAttribute("height","100%");bg.setAttribute("fill","#f8fbfe");copy.insertBefore(bg,style.nextSibling);
     const xml=new XMLSerializer().serializeToString(copy),svgBlob=new Blob([xml],{type:"image/svg+xml"}),url=URL.createObjectURL(svgBlob),img=new Image();
-    img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=outputWidth;canvas.height=outputHeight;const ctx=canvas.getContext("2d");ctx.fillStyle="#f8fbfe";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);canvas.toBlob(blob=>{const out=URL.createObjectURL(blob),a=document.createElement("a");a.href=out;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(out),1000);state.downloaded=true;},"image/png");};img.src=url;
+    img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=outputWidth;canvas.height=outputHeight;const ctx=canvas.getContext("2d");ctx.fillStyle="#f8fbfe";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);canvas.toBlob(blob=>{if(!blob){showStatus("The map image could not be created. Try again.");return;}const out=URL.createObjectURL(blob),a=document.createElement("a");a.href=out;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(out),1000);state.downloaded=true;showStatus(message);},"image/png");};
+    img.onerror=()=>{URL.revokeObjectURL(url);showStatus("The map image could not be created. Try again.");};
+    img.src=url;
   }
 
   function validMap(map) {
@@ -769,6 +843,7 @@
     if(!validMap(source))return;
     if(!state.mapQ)state.mapQ=clone(source);
     state.activeMap="q";
+    setJourneyStage("question");
     $("#experienceOne").hidden=true;$("#continueCard").hidden=true;$("#questionExperience").hidden=false;
     $("#questionResults").hidden=true;
     populateAnnotationTargets();renderMap("q");
@@ -789,7 +864,7 @@
 
   $("#beginImportedExperience").addEventListener("click",startQuestionExperience);
   $("#continueToQuestions").addEventListener("click",()=>{state.openedFromFile=false;if(!state.mapQ){state.mapQ=clone(state.snapshotV2||state.mapV2);state.annotations=[];}startQuestionExperience();});
-  $("#returnToOpening").addEventListener("click",()=>{$("#questionExperience").hidden=true;$("#experienceOne").hidden=state.openedFromFile;$("#continueCard").hidden=false;$("#continueCard").scrollIntoView({behavior:"smooth",block:"start"});});
+  $("#returnToOpening").addEventListener("click",()=>{$("#questionExperience").hidden=true;$("#experienceOne").hidden=state.openedFromFile;$("#continueCard").hidden=false;$("#continueCard").open=true;$("#continueCard").scrollIntoView({behavior:"smooth",block:"start"});});
   $("#finishQuestioning").addEventListener("click",()=>{
     if(!state.annotations.length){$("#questionValidation").textContent="Attach at least one question, assumption, uncertainty, piece of evidence, or note before finishing.";$("#mapPanelQ").scrollIntoView({behavior:"smooth",block:"start"});return;}
     const counts=type=>state.annotations.filter(item=>item.type===type).length;
@@ -798,10 +873,10 @@
   });
 
   $("#downloadProject").addEventListener("click",downloadProject);
-  $("#downloadV1").addEventListener("click",()=>downloadMapPng("#mapCanvas","qonduit-home-system-map-version-1.png"));
-  $("#downloadV1After").addEventListener("click",()=>downloadMapPng("#mapCanvas","qonduit-home-system-map-version-1.png"));
-  $("#downloadPng").addEventListener("click",()=>downloadMapPng("#mapCanvasV2","qonduit-home-system-map.png"));
-  $("#downloadAnnotatedPng").addEventListener("click",()=>downloadMapPng("#mapCanvasQ","qonduit-questioned-system-map.png"));
+  $("#downloadV1").addEventListener("click",()=>downloadMapPng("#mapCanvas","qonduit-home-system-map-version-1.png","Version 1 image download started."));
+  $("#downloadV1After").addEventListener("click",()=>downloadMapPng("#mapCanvas","qonduit-home-system-map-version-1.png","Version 1 image download started."));
+  $("#downloadPng").addEventListener("click",()=>downloadMapPng("#mapCanvasV2","qonduit-home-system-map.png","Version 2 image download started."));
+  $("#downloadAnnotatedPng").addEventListener("click",()=>downloadMapPng("#mapCanvasQ","qonduit-questioned-system-map.png","Annotated map download started."));
   $("#downloadQuestionedProject").addEventListener("click",downloadProject);
   $("#reflectionVisible").addEventListener("input",()=>state.dirty=true);
   $("#reflectionQuestion").addEventListener("input",()=>state.dirty=true);

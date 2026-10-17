@@ -5,26 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Build and revise a truthful map of how technology supports your home.">
   <title>Qonduit | See the System You Already Live In</title>
-  <link rel="stylesheet" href="styles.css?v=20261016-3">
+  <link rel="stylesheet" href="styles.css?v=20261016-4">
 </head>
 <body>
   <a class="skip-link" href="#experience">Skip to the experience</a>
   <header class="site-header">
-    <div class="brand">Q<span>onduit</span></div>
-    <div class="privacy-line">Your information stays in this browser tab</div>
+    <div class="brand-lockup"><div class="brand">Q<span>onduit</span></div><div class="brand-descriptor">Living system maps</div></div>
+    <div class="privacy-line">Private by design · Nothing is autosaved</div>
   </header>
 
   <section class="hero" aria-labelledby="pageTitle">
-    <div>
-      <p class="eyebrow">See the system you already live in</p>
+    <div class="hero-copy">
+      <p class="eyebrow">See the systems behind ordinary life</p>
       <h1 id="pageTitle">Your home works because systems work together.</h1>
-      <p class="lede">Build a map of how technology supports the people in your home. You do not need technical vocabulary, and your map does not need to look like anyone else’s.</p>
+      <p class="lede">Build a picture of what your technology depends on. Then question it, revise it, and use it to ask better questions about risk and controls.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-large" id="startExperience" type="button">Build my first map</button>
+        <button class="text-button" id="openSavedProject" type="button" aria-controls="continueCard">Continue a saved project</button>
+      </div>
+      <p class="hero-reassurance">No technical vocabulary required. No score. No model answer.</p>
     </div>
-    <aside class="hero-card" aria-label="What to expect">
-      <p><strong>You will make two versions.</strong></p>
-      <p>Qonduit will turn your answers into an editable starting map. After you save Version 1, it will give you something new to investigate. You will decide what belongs in Version 2.</p>
-      <p><strong>No score. No model answer.</strong></p>
+    <aside class="hero-map-card" aria-label="Example of a living system map">
+      <div class="map-preview-heading"><span>One activity</span><strong>Many dependencies</strong></div>
+      <svg class="hero-map" viewBox="0 0 500 310" role="img" aria-labelledby="heroMapTitle heroMapDesc">
+        <title id="heroMapTitle">Example home technology map</title>
+        <desc id="heroMapDesc">Working from home connects to a laptop, internet service, electricity, and an employer sign-in.</desc>
+        <g class="preview-lines">
+          <line x1="250" y1="70" x2="120" y2="160"></line><line x1="250" y1="70" x2="380" y2="160"></line>
+          <line x1="120" y1="160" x2="90" y2="260"></line><line x1="120" y1="160" x2="250" y2="260"></line><line x1="380" y1="160" x2="410" y2="260"></line>
+        </g>
+        <g class="preview-node preview-node-main" transform="translate(170 30)"><rect width="160" height="64" rx="14"></rect><text x="80" y="39">Work from home</text></g>
+        <g class="preview-node preview-node-device" transform="translate(40 130)"><rect width="160" height="64" rx="14"></rect><text x="80" y="39">Work laptop</text></g>
+        <g class="preview-node preview-node-person" transform="translate(300 130)"><rect width="160" height="64" rx="14"></rect><text x="80" y="39">Person working</text></g>
+        <g class="preview-node preview-node-service" transform="translate(20 230)"><rect width="140" height="58" rx="14"></rect><text x="70" y="35">Internet</text></g>
+        <g class="preview-node preview-node-service" transform="translate(180 230)"><rect width="140" height="58" rx="14"></rect><text x="70" y="35">Electricity</text></g>
+        <g class="preview-node preview-node-new" transform="translate(340 230)"><rect width="140" height="58" rx="14"></rect><text x="70" y="35">Work sign-in</text></g>
+      </svg>
+      <p>What first looked like one device becomes a picture you can question.</p>
     </aside>
+  </section>
+
+  <section class="journey-overview" aria-labelledby="journeyTitle">
+    <div><p class="eyebrow">The Qonduit method</p><h2 id="journeyTitle">Your picture changes as your understanding changes.</h2></div>
+    <ol>
+      <li data-journey="build"><span>1</span><strong>Build</strong><small>Make the first picture</small></li>
+      <li data-journey="notice"><span>2</span><strong>Notice</strong><small>See what it relies on</small></li>
+      <li data-journey="discover"><span>3</span><strong>Discover</strong><small>Consider new information</small></li>
+      <li data-journey="revise"><span>4</span><strong>Revise</strong><small>Change the picture</small></li>
+      <li data-journey="question"><span>5</span><strong>Question</strong><small>Ask what remains unknown</small></li>
+    </ol>
   </section>
 
   <section class="promise" aria-label="Qonduit promise">
@@ -33,23 +62,24 @@
   </section>
 
   <main class="page-shell" id="experience">
-    <section class="continue-card" id="continueCard" aria-labelledby="continueTitle">
-      <div>
-        <p class="eyebrow">Returning to Qonduit?</p>
-        <h2 id="continueTitle">Continue a saved map</h2>
-        <p>Choose a Qonduit project file you previously downloaded. It is opened only in this browser and is not uploaded or stored.</p>
-        <p class="file-status" id="importStatus" role="status" aria-live="polite"></p>
+    <details class="continue-card" id="continueCard">
+      <summary><span><span class="eyebrow">Returning to Qonduit?</span><strong id="continueTitle">Continue a saved project</strong></span><span class="summary-hint">Choose a file</span></summary>
+      <div class="continue-card-body">
+        <div>
+          <p>Choose a Qonduit project file you previously downloaded. It opens only in this browser and is not uploaded or stored.</p>
+          <p class="file-status" id="importStatus" role="status" aria-live="polite"></p>
+        </div>
+        <div class="continue-actions">
+          <label class="field-label" for="projectFile">Qonduit project file</label>
+          <input class="project-file-input" id="projectFile" type="file" accept=".json,application/json">
+          <button class="btn btn-primary" id="beginImportedExperience" type="button" hidden>Question this map</button>
+        </div>
       </div>
-      <div class="continue-actions">
-        <label class="field-label" for="projectFile">Qonduit project file</label>
-        <input class="project-file-input" id="projectFile" type="file" accept=".json,application/json">
-        <button class="btn btn-primary" id="beginImportedExperience" type="button" hidden>Question this map</button>
-      </div>
-    </section>
+    </details>
 
     <section class="experience" id="experienceOne" aria-label="Home system mapping experience">
       <div class="progress-wrap">
-        <div class="progress-copy"><span id="stepLabel">Step 1 of 6</span><span id="stepName">Your home</span></div>
+        <div class="progress-copy"><span id="stepLabel">Home map · Step 1 of 6</span><span id="stepName">Your home</span></div>
         <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
       </div>
 
@@ -177,6 +207,11 @@
                 <button class="btn btn-soft" id="addEdgeBtn" type="button">Show a relationship</button>
               </div>
             </div>
+            <div class="panel-section touch-only">
+              <h3>Move boxes on a phone</h3>
+              <p>Turn this on only while moving boxes. Turn it off to scroll the page normally.</p>
+              <button class="btn btn-secondary btn-block" type="button" data-move-mode="v1" aria-pressed="false">Move boxes: off</button>
+            </div>
             <div class="panel-section">
               <h3>Selected piece</h3>
               <p id="selectedHelp" aria-live="polite">Select a box on the map or use a button in the outline.</p>
@@ -236,6 +271,11 @@
                   <button class="btn btn-soft" id="addEdgeBtnV2" type="button">Show a relationship</button>
                 </div>
                 <button class="btn btn-secondary" id="editNodeBtnV2" style="margin-top:.55rem" type="button" disabled>Edit selected</button>
+              </div>
+              <div class="panel-section touch-only">
+                <h3>Move boxes on a phone</h3>
+                <p>Turn this on only while moving boxes. Turn it off to scroll the page normally.</p>
+                <button class="btn btn-secondary btn-block" type="button" data-move-mode="v2" aria-pressed="false">Move boxes: off</button>
               </div>
               <details class="panel-section map-outline" id="outlineV2">
                 <summary>Version 2 outline</summary>
@@ -299,6 +339,11 @@
             <div class="question-prompt" id="questionPrompt">Choose a map item to see a useful question.</div>
             <button class="btn btn-primary btn-block" id="addAnnotationBtn" type="button">Attach a question or note</button>
           </div>
+          <div class="panel-section touch-only">
+            <h3>Move boxes on a phone</h3>
+            <p>Turn this on only while moving boxes. Turn it off to scroll the page normally.</p>
+            <button class="btn btn-secondary btn-block" type="button" data-move-mode="q" aria-pressed="false">Move boxes: off</button>
+          </div>
           <details class="panel-section map-outline" id="outlineQ">
             <summary>Map outline</summary>
             <p>Selecting a box makes its direct relationships easier to see.</p>
@@ -337,7 +382,13 @@
     </section>
   </main>
 
-  <footer class="site-footer">Qonduit is a Ypifany project. The earlier <a href="operations-situation-map.html">Operations Situation Map prototype</a> is preserved for later development.</footer>
+  <footer class="site-footer"><strong>Qonduit is a Ypifany project.</strong><span>Your map stays in your browser unless you choose to download it.</span></footer>
+
+  <div class="undo-toast" id="undoToast" role="status" aria-live="polite" hidden>
+    <span id="undoMessage"></span>
+    <button class="undo-action" id="undoAction" type="button" hidden>Undo</button>
+    <button class="undo-dismiss" id="undoDismiss" type="button" aria-label="Dismiss message">×</button>
+  </div>
 
   <div class="modal-backdrop" id="nodeModal" role="dialog" aria-modal="true" aria-labelledby="nodeModalTitle">
     <div class="modal">
@@ -345,6 +396,7 @@
       <div class="field"><label for="nodeLabel">What do you call it?</label><input id="nodeLabel" type="text" placeholder="Example: work laptop"></div>
       <div class="field"><label for="nodeType">What kind of piece is it?</label><select id="nodeType"><option value="device">Device or equipment</option><option value="person">Person or group</option><option value="service">Outside service</option><option value="purpose">Purpose or activity</option><option value="system">System</option></select></div>
       <div class="field"><label for="nodeCertainty">How sure are you?</label><select id="nodeCertainty"><option value="known">I know this</option><option value="assumed">I am assuming this</option><option value="check">I need to check</option></select></div>
+      <div class="validation" id="nodeValidation" role="alert"></div>
       <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveNode" type="button">Add to map</button></div>
     </div>
   </div>
@@ -367,6 +419,7 @@
         </div>
       </fieldset>
       <div class="field"><label for="edgeLabel">Or write your own relationship</label><input id="edgeLabel" type="text" placeholder="Example: sends information to"></div>
+      <div class="validation" id="edgeValidation" role="alert"></div>
       <div class="modal-actions"><button class="btn btn-secondary" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveEdge" type="button">Show relationship on map</button></div>
     </div>
   </div>
@@ -383,6 +436,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261016-3"></script>
+  <script src="app.js?v=20261016-4"></script>
 </body>
 </html>
